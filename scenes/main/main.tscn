@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/main/test_room.tscn" id="1_room"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+
+[node name="Main" type="Node2D"]
+
+[node name="TestRoom" parent="." instance=ExtResource("1_room")]
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(360, 300)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ControlsHint" type="Label" parent="UI"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = -16.0
+offset_right = 380.0
+offset_bottom = -6.0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.94902, 0.87451, 0.764706, 0.85)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.4)
+theme_override_font_sizes/font_size = 8
+text = "Move — WASD / Arrows / Left Stick"

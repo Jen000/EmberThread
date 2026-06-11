@@ -1,0 +1,8 @@
+# Normalise line endings; Godot text resources are written with LF.
+* text=auto eol=lf
+
+# Binary assets
+*.png binary
+*.ttf binary
+*.ogg binary
+*.wav binary

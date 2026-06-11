@@ -1,0 +1,83 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wallh"]
+size = Vector2(720, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wallv"]
+size = Vector2(16, 480)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bench"]
+size = Vector2(64, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_crate"]
+size = Vector2(24, 24)
+
+[node name="TestRoom" type="Node2D"]
+
+[node name="Floor" type="Polygon2D" parent="."]
+color = Color(0.290196, 0.227451, 0.172549, 1)
+polygon = PackedVector2Array(0, 0, 720, 0, 720, 480, 0, 480)
+
+[node name="Walls" type="StaticBody2D" parent="."]
+
+[node name="North" type="CollisionShape2D" parent="Walls"]
+position = Vector2(360, 8)
+shape = SubResource("RectangleShape2D_wallh")
+
+[node name="Visual" type="Polygon2D" parent="Walls/North"]
+color = Color(0.172549, 0.121569, 0.0901961, 1)
+polygon = PackedVector2Array(-360, -8, 360, -8, 360, 8, -360, 8)
+
+[node name="South" type="CollisionShape2D" parent="Walls"]
+position = Vector2(360, 472)
+shape = SubResource("RectangleShape2D_wallh")
+
+[node name="Visual" type="Polygon2D" parent="Walls/South"]
+color = Color(0.172549, 0.121569, 0.0901961, 1)
+polygon = PackedVector2Array(-360, -8, 360, -8, 360, 8, -360, 8)
+
+[node name="West" type="CollisionShape2D" parent="Walls"]
+position = Vector2(8, 240)
+shape = SubResource("RectangleShape2D_wallv")
+
+[node name="Visual" type="Polygon2D" parent="Walls/West"]
+color = Color(0.172549, 0.121569, 0.0901961, 1)
+polygon = PackedVector2Array(-8, -240, 8, -240, 8, 240, -8, 240)
+
+[node name="East" type="CollisionShape2D" parent="Walls"]
+position = Vector2(712, 240)
+shape = SubResource("RectangleShape2D_wallv")
+
+[node name="Visual" type="Polygon2D" parent="Walls/East"]
+color = Color(0.172549, 0.121569, 0.0901961, 1)
+polygon = PackedVector2Array(-8, -240, 8, -240, 8, 240, -8, 240)
+
+[node name="Workbench" type="StaticBody2D" parent="."]
+position = Vector2(200, 150)
+
+[node name="Shape" type="CollisionShape2D" parent="Workbench"]
+shape = SubResource("RectangleShape2D_bench")
+
+[node name="Visual" type="Polygon2D" parent="Workbench"]
+color = Color(0.431373, 0.309804, 0.188235, 1)
+polygon = PackedVector2Array(-32, -20, 32, -20, 32, 20, -32, 20)
+
+[node name="Crate" type="StaticBody2D" parent="."]
+position = Vector2(520, 330)
+
+[node name="Shape" type="CollisionShape2D" parent="Crate"]
+shape = SubResource("RectangleShape2D_crate")
+
+[node name="Visual" type="Polygon2D" parent="Crate"]
+color = Color(0.541176, 0.396078, 0.235294, 1)
+polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
+
+[node name="Crate2" type="StaticBody2D" parent="."]
+position = Vector2(551, 343)
+
+[node name="Shape" type="CollisionShape2D" parent="Crate2"]
+shape = SubResource("RectangleShape2D_crate")
+
+[node name="Visual" type="Polygon2D" parent="Crate2"]
+color = Color(0.541176, 0.396078, 0.235294, 1)
+polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
