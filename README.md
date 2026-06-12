@@ -66,6 +66,12 @@ Art is a swappable layer — see `docs/art-pipeline.md` for the full rules.
   sizes/naming and tracked in `assets/temp_assets.md`. The player, Pip,
   NPCs, portraits, journal illustrations and the map are never sourced —
   blocks until the artist delivers.
+- Raw Kenney packs live at the repo root (`Roguelike Base Pack/`,
+  `Roguelike Characters Pack/` — 16×16 cells, 1px margins, `.gdignore`d so
+  Godot never imports them). Slice cells into conformed assets with
+  `python3 tools/conform_kenney.py base COL ROW tilesets/coastal/tile_… .png`
+  — it stitches multi-cell blocks (`--cells 2x2`), integer-scales
+  (`--scale`), and records the row in `temp_assets.md` automatically.
 
 ## Pixel-art display settings (and why)
 
