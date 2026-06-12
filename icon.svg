@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Ember & Thread: a warm ember with a thread looping past it. -->
+  <rect width="128" height="128" rx="20" fill="#241c2b"/>
+  <circle cx="64" cy="58" r="30" fill="#7a3b22"/>
+  <circle cx="64" cy="58" r="24" fill="#ff9d3a"/>
+  <circle cx="64" cy="58" r="14" fill="#ffd28a"/>
+  <path d="M 20 106 C 44 86, 80 96, 108 68" stroke="#9ad7d0" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <circle cx="108" cy="68" r="5" fill="#9ad7d0"/>
+</svg>

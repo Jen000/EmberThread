@@ -1,0 +1,12 @@
+# Godot 4 cache and per-machine data — never commit.
+# (*.import and *.uid files SHOULD be committed.)
+.godot/
+
+# Export output
+build/
+export/
+*.pck
+
+# OS cruft
+.DS_Store
+Thumbs.db

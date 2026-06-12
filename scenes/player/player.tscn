@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/player/player.gd" id="1_player"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_feet"]
+size = Vector2(10, 6)
+
+[node name="Player" type="CharacterBody2D"]
+motion_mode = 1
+script = ExtResource("1_player")
+
+[node name="Visual" type="Node2D" parent="."]
+position = Vector2(0, -16)
+
+[node name="Base" type="AnimatedSprite2D" parent="Visual"]
+
+[node name="Outfit" type="AnimatedSprite2D" parent="Visual"]
+
+[node name="Hair" type="AnimatedSprite2D" parent="Visual"]
+
+[node name="Accessory" type="AnimatedSprite2D" parent="Visual"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -3)
+shape = SubResource("RectangleShape2D_feet")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 6.0
