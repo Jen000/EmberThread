@@ -16,6 +16,12 @@ run/main_scene="res://scenes/main/main.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+AssetRegistry="*res://core/asset_registry.gd"
+SoundManager="*res://core/sound_manager.gd"
+MusicManager="*res://core/music_manager.gd"
+
 [display]
 
 window/size/viewport_width=480
