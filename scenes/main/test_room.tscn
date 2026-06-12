@@ -1,4 +1,6 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scenes/main/test_room.gd" id="1_room"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wallh"]
 size = Vector2(720, 16)
@@ -13,6 +15,7 @@ size = Vector2(64, 40)
 size = Vector2(24, 24)
 
 [node name="TestRoom" type="Node2D"]
+script = ExtResource("1_room")
 
 [node name="Floor" type="Polygon2D" parent="."]
 color = Color(0.290196, 0.227451, 0.172549, 1)
@@ -81,3 +84,10 @@ shape = SubResource("RectangleShape2D_crate")
 [node name="Visual" type="Polygon2D" parent="Crate2"]
 color = Color(0.541176, 0.396078, 0.235294, 1)
 polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
+
+[node name="HiddenTrinket" type="Node2D" parent="." groups=["pip_sensable"]]
+position = Vector2(640, 120)
+
+[node name="Visual" type="Polygon2D" parent="HiddenTrinket"]
+color = Color(0.85, 0.76, 0.45, 0.55)
+polygon = PackedVector2Array(0, -5, 5, 0, 0, 5, -5, 0)

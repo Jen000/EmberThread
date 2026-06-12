@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/main/test_room.tscn" id="1_room"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/pip/pip.tscn" id="3_pip"]
 
 [node name="Main" type="Node2D"]
 
@@ -9,6 +10,10 @@
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(360, 300)
+
+[node name="Pip" parent="." instance=ExtResource("3_pip")]
+position = Vector2(372, 286)
+follow_target_path = NodePath("../Player")
 
 [node name="UI" type="CanvasLayer" parent="."]
 

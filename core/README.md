@@ -1,7 +1,17 @@
 # core/ — pipeline seams (autoloads)
 
-These three singletons are the only code in the project that touches asset
-file paths. Everything else uses logical keys, per `docs/art-pipeline.md`.
+`AssetRegistry`, `SoundManager` and `MusicManager` are the only code in
+the project that touches asset file paths. Everything else uses logical
+keys, per `docs/art-pipeline.md`. `Settings` holds global settings and
+accessibility flags.
+
+## Settings
+
+Accessibility flags live here from day one (scaffolded as systems are
+built, never retrofitted). Currently: `reduced_sensory` — systems that
+pulse, flash or flicker read it and soften (Pip's glow already does).
+Listen to the `changed` signal for live updates; the settings menu UI
+arrives later.
 
 ## AssetRegistry
 

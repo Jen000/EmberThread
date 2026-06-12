@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+Settings="*res://core/settings.gd"
 AssetRegistry="*res://core/asset_registry.gd"
 SoundManager="*res://core/sound_manager.gd"
 MusicManager="*res://core/music_manager.gd"

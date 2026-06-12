@@ -42,6 +42,19 @@ Bindings use physical key positions, so WASD works on any keyboard layout.
 yet. Remappable controls arrive with the settings menu (accessibility
 requirement).
 
+## What's here so far
+
+Steps 1–2 of the build order: project setup and Pip's basics. A
+placeholder test room with cozy-paced player movement, and Pip — gentle
+side-drift following, the seven-colour glow language (each emotion paired
+with its own pulse rhythm, so colour is never the only signal), the three
+movement states, and region-1 object sensing: walk near the faint trinket
+in the room's north-east corner and Pip notices, glows green, and leads.
+
+**Pip playground (debug builds):** `1` calm · `2` distressed · `3` cycle
+emotion · `4` shimmer preview · `9` toggle reduced sensory mode · `0`
+reset.
+
 ## Project structure
 
 ```
