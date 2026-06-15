@@ -5,32 +5,44 @@ movement — soft acceleration, gentle stop, exported feel values.
 
 ## Visual structure (art pipeline §5)
 
-Modular 16×32 layers, drawn bottom-to-top: **Base → Outfit → Hair →
-Accessory** (`AnimatedSprite2D` each, under `Visual`). Frames are resolved
-through `AssetRegistry` keys — no paths, no textures embedded in the scene:
+Four modular layers, drawn back-to-front: **Body → Clothes → Face → Hair**
+(`AnimatedSprite2D` each, under `Visual`). Each layer is ONE spritesheet,
+resolved through an `AssetRegistry` key — no paths or textures in the scene:
 
 ```
-player_<layer>[_<variant>]_<anim>_<NN>.png      in assets/sprites/player/
-e.g. player_base_idle_01.png, player_hair_short_walk_left_03.png
+player_<layer>[_<variant>].png      in assets/sprites/player/
+e.g. player_body.png, player_hair.png, player_hair_afro.png
 ```
 
-Animations per layer: `idle` (2 frames, facing down) and `walk_down/up/
-left/right` (4 frames each). Standing while facing up/left/right rests on
-frame 1 of that walk cycle (the locked spec has down-facing idles only).
+**Sheet layout** (`Player.SHEET_LAYOUT`) — a 4-column × 5-row grid of
+16×32 cells, sliced into frames at load:
+
+```
+row 0  idle        cells 0–1 (2 frames, facing down)
+row 1  walk_down   cells 0–3
+row 2  walk_up     cells 0–3
+row 3  walk_left   cells 0–3
+row 4  walk_right  cells 0–3
+```
+
+All four layers share the same 16×32 footprint so they register when
+stacked. Standing while facing up/left/right rests on frame 0 of that walk
+row (the locked spec has down-facing idles only). A layer whose sheet is
+missing simply draws nothing.
 
 ## Customisation
 
-`appearance` maps layer → variant (`hair: "short"` →
-`player_hair_short_*`). The customisation screen calls:
+`appearance` maps layer → variant (`""` = the base sheet `player_<layer>.png`;
+a variant resolves to `player_<layer>_<variant>.png`):
 
 ```gdscript
-player.set_appearance("hair", "afro")
+player.set_appearance("hair", "afro")    # -> player_hair_afro.png
 ```
 
-**Adding a variant:** drop a full frame set named
-`player_<layer>_<variant>_<anim>_<NN>.png` into `assets/sprites/player/` —
-no code changes. Current stand-in variants: `hair_short`, `hair_afro`,
-`outfit_default`, `accessory_default` (base has no variant suffix).
+The palette-swap shader (later) recolours skin on **body**, eye colour on
+**face**, hair colour on **hair**, and the outfit's recolour zones on
+**clothes**. **Adding a variant:** drop a correctly-named sheet into
+`assets/sprites/player/` — no code changes.
 
 ## Conventions
 

@@ -12,13 +12,13 @@ script = ExtResource("1_player")
 [node name="Visual" type="Node2D" parent="."]
 position = Vector2(0, -16)
 
-[node name="Base" type="AnimatedSprite2D" parent="Visual"]
+[node name="Body" type="AnimatedSprite2D" parent="Visual"]
 
-[node name="Outfit" type="AnimatedSprite2D" parent="Visual"]
+[node name="Clothes" type="AnimatedSprite2D" parent="Visual"]
+
+[node name="Face" type="AnimatedSprite2D" parent="Visual"]
 
 [node name="Hair" type="AnimatedSprite2D" parent="Visual"]
-
-[node name="Accessory" type="AnimatedSprite2D" parent="Visual"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -3)

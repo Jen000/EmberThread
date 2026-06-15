@@ -56,17 +56,28 @@ MAGENTA_DARK = (170, 0, 170, 255)
 INK = (20, 20, 20, 255)
 WHITE = (240, 240, 240, 255)
 
-# One distinct flat colour per player layer (§5) so the stacked modular
-# structure is visible and the palette-swap shader has real layers to hit.
-LAYER_COLOURS = {
-    "base": (138, 138, 160, 255),
-    "outfit_default": (196, 122, 58, 255),
-    "hair_short": (87, 160, 90, 255),
-    "hair_afro": (60, 130, 64, 255),
-    "accessory_default": (74, 196, 196, 255),
+# Player layers, draw order back->front, one distinct flat colour each so
+# the stacked structure is visible and the palette-swap shader has real
+# zones to hit. Each layer is ONE spritesheet (player_<layer>.png): a grid
+# of 16x32 cells the engine slices, and the layout the artist draws to.
+PLAYER_LAYERS = ["body", "clothes", "face", "hair"]
+PLAYER_LAYER_COLOURS = {
+    "body": (214, 168, 120, 255),    # skin
+    "clothes": (196, 122, 58, 255),  # outfit
+    "face": (40, 32, 32, 255),       # eyes / features
+    "hair": (96, 150, 96, 255),      # hair
 }
 
-DIRECTIONS = ["down", "up", "left", "right"]
+# anim -> frame count, one row each. Matches Player.SHEET_LAYOUT row order.
+PLAYER_SHEET = [
+    ("idle", 2),
+    ("walk_down", 4),
+    ("walk_up", 4),
+    ("walk_left", 4),
+    ("walk_right", 4),
+]
+PLAYER_COLS = 4
+FRAME_W, FRAME_H = 16, 32
 
 # Pip state -> frame count (§1). Shimmer range is 6-8; stand-ins use 6 and
 # the registry tolerates however many frames the artist delivers.
@@ -147,55 +158,56 @@ def encode_png(canvas, scale: int = 1) -> bytes:
     )
 
 
-# --- player layer stand-ins (16x32, modular, §5) ---------------------------
+# --- player layer stand-ins (16x32 cells, one sheet per layer, §5) ----------
+# Shared body regions so the four layers register when stacked: head, torso,
+# legs, feet. The artist draws every layer on this same 16x32 footprint.
 
-def player_frame(variant: str, anim: str, index: int):
-    """One 16x32 frame for one layer. `anim` is "idle" or "walk_<dir>"."""
-    canvas = blank(16, 32)
-    kind = variant.split("_")[0]
-    colour = LAYER_COLOURS[variant]
-    breath = 1 if (anim == "idle" and index == 1) else 0
+def player_cell(layer: str, anim: str, index: int):
+    """One 16x32 cell of a layer sheet."""
+    cell = blank(FRAME_W, FRAME_H)
+    colour = PLAYER_LAYER_COLOURS[layer]
+    facing = anim.split("_")[1] if anim.startswith("walk_") else "down"
 
-    if kind == "base":
-        rect(canvas, 0, 0, 15, 31, colour)
-        outline(canvas, MAGENTA)
-        frame_pips(canvas, index + 1)
-    elif kind == "outfit":
-        rect(canvas, 0, 14, 15, 27, colour)
-        rect(canvas, 0, 14, 1, 15, MAGENTA)
-        if anim.startswith("walk_"):
-            direction = anim.split("_")[1]
-            gait = [0, 1, 0, -1][index]
-            if direction == "down":
-                rect(canvas, 6 + gait, 26, 8 + gait, 27, INK)
-            elif direction == "up":
-                rect(canvas, 6 + gait, 14, 8 + gait, 15, INK)
-            elif direction == "left":
-                rect(canvas, 0, 19 + gait, 1, 21 + gait, INK)
-            else:
-                rect(canvas, 14, 19 + gait, 15, 21 + gait, INK)
-    elif kind == "hair":
-        if variant == "hair_short":
-            rect(canvas, 3, 0 + breath, 12, 7 + breath, colour)
-            rect(canvas, 3, 0 + breath, 4, 0 + breath, MAGENTA)
-        else:  # hair_afro — visibly different silhouette
-            rect(canvas, 2, 0 + breath, 13, 9 + breath, colour)
-            rect(canvas, 2, 0 + breath, 3, 0 + breath, MAGENTA)
-    elif kind == "accessory":
-        rect(canvas, 2, 18, 6, 22, colour)
-        put(canvas, 2, 18, MAGENTA)
-    return canvas
+    if layer == "body":
+        rect(cell, 4, 2, 11, 11, colour)     # head
+        rect(cell, 3, 12, 12, 23, colour)    # torso
+        rect(cell, 4, 24, 11, 29, colour)    # legs
+        rect(cell, 4, 30, 11, 31, INK)       # feet
+        outline(cell, MAGENTA)               # placeholder marker (whole cell)
+        frame_pips(cell, index + 1, y=1)     # frame counter
+    elif layer == "clothes":
+        rect(cell, 3, 13, 12, 24, colour)    # tunic over the torso
+        rect(cell, 4, 13, 5, 23, MAGENTA)    # satchel strap + marker
+    elif layer == "face":
+        if facing != "up":                   # facing away hides the face
+            dx = {"down": 0, "left": -1, "right": 1}[facing]
+            put(cell, 6 + dx, 7, colour)     # eyes
+            put(cell, 9 + dx, 7, colour)
+            put(cell, 7 + dx, 5, MAGENTA)    # marker
+    elif layer == "hair":
+        rect(cell, 3, 1, 12, 6, colour)      # crown / fringe
+        rect(cell, 3, 1, 12, 1, MAGENTA)     # marker
+    return cell
+
+
+def player_sheet(layer: str):
+    """A full layer sheet: PLAYER_COLS x len(PLAYER_SHEET) grid of cells."""
+    sheet = blank(PLAYER_COLS * FRAME_W, len(PLAYER_SHEET) * FRAME_H)
+    for row, (anim, count) in enumerate(PLAYER_SHEET):
+        for index in range(count):
+            cell = player_cell(layer, anim, index)
+            for y, line in enumerate(cell):
+                for x, pixel in enumerate(line):
+                    if pixel[3] != 0:
+                        sheet[row * FRAME_H + y][index * FRAME_W + x] = pixel
+    return sheet
 
 
 def player_files():
-    files = {}
-    for variant in LAYER_COLOURS:
-        anims = [("idle", 2)] + [("walk_%s" % d, 4) for d in DIRECTIONS]
-        for anim, count in anims:
-            for i in range(count):
-                name = "player_%s_%s_%02d.png" % (variant, anim, i + 1)
-                files["sprites/player/" + name] = player_frame(variant, anim, i)
-    return files
+    return {
+        "sprites/player/player_%s.png" % layer: player_sheet(layer)
+        for layer in PLAYER_LAYERS
+    }
 
 
 # --- Pip stand-ins (8x10, per movement/glow state, §5) ----------------------
@@ -257,12 +269,13 @@ def ensure_tree() -> None:
 
 
 def write_preview(files) -> None:
-    """8x contact sheet: stacked player frame + pip states. /tmp only."""
+    """8x contact sheet: stacked player idle frame + pip states. /tmp only."""
     stacked = blank(16, 32)
-    for layer in ["base", "outfit_default", "hair_short", "accessory_default"]:
-        frame = files["sprites/player/player_%s_walk_down_01.png" % layer]
-        for y, row in enumerate(frame):
-            for x, pixel in enumerate(row):
+    for layer in PLAYER_LAYERS:
+        sheet = files["sprites/player/player_%s.png" % layer]
+        for y in range(FRAME_H):           # idle frame 0 is the top-left cell
+            for x in range(FRAME_W):
+                pixel = sheet[y][x]
                 if pixel[3] != 0:
                     stacked[y][x] = pixel
     sheet = blank(16 + 2 + len(PIP_STATES) * 10, 32)

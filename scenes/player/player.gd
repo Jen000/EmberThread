@@ -6,38 +6,52 @@ extends CharacterBody2D
 ## No dash, no stamina — walking is the pace of this game. The feel values
 ## are exported so they can be tuned from the editor while playtesting.
 ##
-## The visual is modular per docs/art-pipeline.md §5: base, outfit, hair
-## and accessory layers stack in that draw order, each animated from
-## frames resolved through AssetRegistry — never file paths. The
-## customisation screen later swaps a layer's variant via
-## set_appearance(); the palette-swap shader will sit on these same
-## layers.
+## The visual is modular (docs/art-pipeline.md §5): four layers stack
+## back-to-front — body, clothes, face, hair — each a single spritesheet
+## sliced on a fixed grid. The sheet texture is resolved through
+## AssetRegistry (never a file path), so the artist's sheet overwrites the
+## stand-in with zero code edits. The customisation screen swaps a layer's
+## variant via set_appearance(); the palette-swap shader sits on these
+## layers (skin tone on body, eye colour on face, hair colour on hair,
+## the recolourable zones on clothes).
 
 const WALK_FPS := 8.0
 const IDLE_FPS := 2.0
-const DIRECTIONS := ["down", "up", "left", "right"]
+
+## Spritesheet contract — every player layer sheet is this grid of 16×32
+## cells. anim -> [row, frame_count]; columns run left-to-right. The
+## artist draws to this layout; slicing here stays fixed.
+const FRAME_SIZE := Vector2i(16, 32)
+const SHEET_LAYOUT := {
+	"idle": [0, 2],
+	"walk_down": [1, 4],
+	"walk_up": [2, 4],
+	"walk_left": [3, 4],
+	"walk_right": [4, 4],
+}
 
 @export var walk_speed := 85.0
 @export var acceleration := 600.0
 @export var friction := 900.0
 
-## Layer -> variant. "" means the layer name carries no variant suffix.
-## Frames resolve as player_<layer>[_<variant>]_<anim> registry keys.
+## Layer -> variant. "" means the base sheet (player_<layer>.png); a
+## variant resolves to player_<layer>_<variant>.png. Draw order is the
+## node order under Visual: body, clothes, face, hair.
 var appearance := {
-	"base": "",
-	"outfit": "default",
-	"hair": "short",
-	"accessory": "default",
+	"body": "",
+	"clothes": "",
+	"face": "",
+	"hair": "",
 }
 
 ## Last non-zero movement direction — facing for interactions, Pip, anims.
 var facing := Vector2.DOWN
 
 @onready var _layers := {
-	"base": $Visual/Base as AnimatedSprite2D,
-	"outfit": $Visual/Outfit as AnimatedSprite2D,
+	"body": $Visual/Body as AnimatedSprite2D,
+	"clothes": $Visual/Clothes as AnimatedSprite2D,
+	"face": $Visual/Face as AnimatedSprite2D,
 	"hair": $Visual/Hair as AnimatedSprite2D,
-	"accessory": $Visual/Accessory as AnimatedSprite2D,
 }
 
 
@@ -65,32 +79,39 @@ func set_appearance(layer: String, variant: String) -> void:
 	_rebuild_layer_frames()
 
 
-## Builds each layer's SpriteFrames from the registry. The registry is the
-## only seam — whatever files sit at the final paths right now are what
-## appears, so real art swaps in with zero edits here.
+## Builds each layer's SpriteFrames by slicing its sheet on the grid. The
+## registry is the only seam — whatever sheet sits at the final path now is
+## what appears, so real art swaps in with zero edits here.
 func _rebuild_layer_frames() -> void:
 	for layer in _layers:
-		var frames := SpriteFrames.new()
-		frames.remove_animation(&"default")
-		_add_animation(frames, layer, "idle", IDLE_FPS)
-		for direction in DIRECTIONS:
-			_add_animation(frames, layer, "walk_" + direction, WALK_FPS)
-		_layers[layer].sprite_frames = frames
+		_layers[layer].sprite_frames = _slice_sheet(AssetRegistry.get_sprite(_layer_key(layer)))
 
 
-func _add_animation(frames: SpriteFrames, layer: String, anim: String, fps: float) -> void:
-	frames.add_animation(anim)
-	frames.set_animation_speed(anim, fps)
-	frames.set_animation_loop(anim, true)
-	for texture in AssetRegistry.get_frames(_layer_key(layer, anim)):
-		frames.add_frame(anim, texture)
+func _slice_sheet(sheet: Texture2D) -> SpriteFrames:
+	var frames := SpriteFrames.new()
+	frames.remove_animation(&"default")
+	for anim in SHEET_LAYOUT:
+		var row: int = SHEET_LAYOUT[anim][0]
+		var count: int = SHEET_LAYOUT[anim][1]
+		frames.add_animation(anim)
+		frames.set_animation_loop(anim, true)
+		frames.set_animation_speed(anim, IDLE_FPS if anim == "idle" else WALK_FPS)
+		if sheet == null:
+			continue  # missing layer: empty animation, nothing drawn
+		for col in count:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = sheet
+			atlas.region = Rect2(
+					col * FRAME_SIZE.x, row * FRAME_SIZE.y, FRAME_SIZE.x, FRAME_SIZE.y)
+			frames.add_frame(anim, atlas)
+	return frames
 
 
-func _layer_key(layer: String, anim: String) -> String:
+func _layer_key(layer: String) -> String:
 	var variant: String = appearance[layer]
 	if variant.is_empty():
-		return "player_%s_%s" % [layer, anim]
-	return "player_%s_%s_%s" % [layer, variant, anim]
+		return "player_%s" % layer
+	return "player_%s_%s" % [layer, variant]
 
 
 func _update_animation(moving: bool) -> void:

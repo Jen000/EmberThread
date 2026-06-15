@@ -51,7 +51,7 @@ Tree under `res://assets/` (fixed):
 ```
 res://assets/
   sprites/
-    player/        # modular layers: base, hair, outfit, accessory
+    player/        # modular layers: body, clothes, face, hair
     pip/
     npcs/          # one folder per NPC
     objects/
@@ -74,7 +74,7 @@ res://assets/
 
 **Naming convention — from the Art Brief, authoritative.** Match it exactly; the artist's files will use it, so the stand-ins must too.
 
-- Player layers: `player_base.png`, `player_hair_short.png`, `player_hair_afro.png`, `player_outfit_*.png`
+- Player layers (one spritesheet each, a 4×5 grid of 16×32 cells — see §5): `player_body.png`, `player_clothes.png`, `player_face.png`, `player_hair.png`; variants add a suffix (`player_hair_afro.png`, `player_clothes_winter.png`)
 - Pip: `pip_idle_01.png`, `pip_distressed_01.png`, `pip_leading_01.png`, `pip_glow_01.png`
 - NPCs: `npc_sable_sprite.png`, `npc_sable_portrait.png`
 - Tiles: `tile_coastal_grass_01.png`, `tile_forest_ground_01.png`
@@ -100,7 +100,7 @@ This registry is the single seam between art and code. When art lands, the files
 
 Build the *structure* to spec; the pixels are throwaway.
 
-**Player (16×32, modular):** Split into the same layers the artist delivers — base, hair, outfit, accessory — each a separate sprite at 16×32, with idle (2) and walk-per-direction (4) frame sets. Stand-ins are flat-colour blocks, one colour per layer, so the palette-swap shader and customisation screen run against the real layer structure. **Block placeholder only — never sourced from a pack** (Kenney has no equivalent that splits into these layers).
+**Player (16×32, modular):** Four layers, drawn back-to-front — **body, clothes, face, hair** — each delivered as ONE spritesheet (`player_<layer>.png`) laid out as a 4-column × 5-row grid of 16×32 cells: row 0 idle (2 frames used), rows 1–4 walk down/up/left/right (4 each). Every layer shares the same 16×32 footprint so they register when stacked. The engine slices the grid (`Player.SHEET_LAYOUT`); the palette-swap shader recolours skin (body), eye colour (face), hair colour (hair) and the outfit's recolour zones (clothes). Stand-ins are flat-colour blocks, one colour per layer. **Block placeholder only — never sourced from a pack** (Kenney has no equivalent that splits into these layers).
 
 **Pip (8×10):** State machine and glow drive frame swaps. Stand-in is a small coloured shape with a glow node, with per-state frame sets at the right counts (idle-bob 3, distressed 3, leading 2, glow-pulse 3, shimmer 6–8) so real animation slots in state by state. Block placeholder only — 8×10 is bespoke.
 
