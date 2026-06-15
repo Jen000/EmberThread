@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/test_room.gd" id="1_room"]
+[ext_resource type="Script" path="res://scenes/sensable/sensable.gd" id="2_sensable"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wallh"]
 size = Vector2(720, 16)
@@ -85,8 +86,10 @@ shape = SubResource("RectangleShape2D_crate")
 color = Color(0.541176, 0.396078, 0.235294, 1)
 polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
 
-[node name="HiddenTrinket" type="Node2D" parent="." groups=["pip_sensable"]]
+[node name="HiddenTrinket" type="Node2D" parent="."]
 position = Vector2(640, 120)
+script = ExtResource("2_sensable")
+sense_radius = 120.0
 
 [node name="Visual" type="Polygon2D" parent="HiddenTrinket"]
 color = Color(0.85, 0.76, 0.45, 0.55)

@@ -199,14 +199,22 @@ def player_files():
 
 
 # --- Pip stand-ins (8x10, per movement/glow state, §5) ----------------------
-# Colour states are engine tints/shaders over these neutral-state frames;
-# only the shimmer is itself a colour cycle, so only it cycles here.
+# Colour states are engine tints/shaders over these neutral-state frames.
+# Pip's whole identity is colour, and a magenta FILL would multiply the
+# emotion tint away (magenta has no green channel). So the fill is a light
+# neutral that takes the tint cleanly, wrapped in a thick magenta BORDER —
+# still unmistakably a placeholder (§6 allows magenta fill *or* border),
+# still in the audit, but the colour language is actually testable.
+NEUTRAL = (205, 205, 210, 255)
 
 def pip_frame(state: str, index: int):
     canvas = blank(8, 10)
-    fill = SHIMMER_CYCLE[index] if state == "shimmer" else MAGENTA
-    rect(canvas, 0, 0, 7, 9, fill)
-    outline(canvas, MAGENTA_DARK if state != "shimmer" else MAGENTA)
+    if state == "shimmer":
+        rect(canvas, 0, 0, 7, 9, SHIMMER_CYCLE[index])
+        outline(canvas, MAGENTA)
+    else:
+        rect(canvas, 0, 0, 7, 9, MAGENTA)       # border
+        rect(canvas, 1, 1, 6, 8, NEUTRAL)       # tintable body
 
     if state == "idle":  # gentle bob — marker drifts vertically
         bob = [4, 3, 5][index]

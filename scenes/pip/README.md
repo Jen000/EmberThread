@@ -10,8 +10,8 @@ principle 9); colour is never the only signal.
 | State | Reads as | Behaviour |
 |---|---|---|
 | `FOLLOW` | calm, connected | floats at the player's quieter side (flips with facing), smooth drift + gentle bob; scans for sensable objects |
-| `NOTICING` | "oh!" | brief hold (0.7s): glow-pulse animation, turns curious-green, leans toward what was sensed, then leads |
-| `LEADING` | eager, pulling ahead | stays `lead_distance` ahead of the player toward the object, tilts forward; hovers over the object when the player arrives and emits `reached_object` |
+| `NOTICING` | "oh!" | brief hold (~0.45s): glow-pulse animation, turns curious-green, leans toward what was sensed, then leads |
+| `LEADING` | eager, pulling ahead | sits `lead_distance` ahead of the player on the line to the object (never past it), tracked tightly so a full-speed player can't outrun Pip; tilts forward; hovers over the object on arrival and emits `reached_object` |
 | `DISTRESSED` | jagged, withdrawn | retreats `retreat_distance` away from the player with erratic jitter, faster snappier motion, reduced bob |
 
 Transitions in: `set_move_state()`. Sensing→noticing→leading is automatic;
@@ -47,10 +47,13 @@ mode** (`Settings.reduced_sensory`) caps flicker speed and depth.
 
 ## Adding a sensable object
 
-Put any `Node2D` in the **`pip_sensable`** group. Within `detect_radius`
-of Pip (while following), the notice→lead arc triggers on its own. Remove
-it from the group (or free it) when mended. The test room's
-`HiddenTrinket` is the working example.
+Attach the **`Sensable`** component (`scenes/sensable/`) to a `Node2D` —
+it owns how far Pip senses it from (`sense_radius`) and whether it's
+currently active (`active`, for story-gating main mending objects). Pip
+runs the notice→lead arc on its own. See that folder's README. A plain
+`Node2D` in the `pip_sensable` group still works, using Pip's
+`default_sense_radius` fallback. The test room's `HiddenTrinket` is the
+working example.
 
 ## Art & audio seams
 

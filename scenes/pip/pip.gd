@@ -34,7 +34,7 @@ enum Emotion { GOLDEN, BLUE, RED, GREEN, WHITE, PURPLE, SHIMMER }
 ## Hex values are provisional until the Art Brief palette lands — they
 ## live only here.
 const EMOTION_GLOW := {
-	Emotion.GOLDEN: { "color": Color(1.0, 0.78, 0.35), "speed": 0.8, "depth": 0.12, "strength": 0.85 },
+	Emotion.GOLDEN: { "color": Color(1.0, 0.78, 0.35), "speed": 0.38, "depth": 0.12, "strength": 0.85 },
 	Emotion.BLUE: { "color": Color(0.30, 0.42, 0.75), "speed": 0.45, "depth": 0.06, "strength": 0.55 },
 	Emotion.RED: { "color": Color(0.92, 0.33, 0.25), "speed": 4.5, "depth": 0.22, "strength": 1.0 },
 	Emotion.GREEN: { "color": Color(0.55, 0.83, 0.55), "speed": 1.6, "depth": 0.18, "strength": 0.9 },
@@ -61,12 +61,19 @@ var follow_target: Node2D
 @export_group("Follow feel")
 @export var follow_offset := Vector2(12.0, -18.0)
 @export var follow_damping := 3.5
+## When the player stops, Pip eases this much further out (a multiplier on
+## the offset) so it isn't crowding your shoulder at rest, while motion
+## still feels close.
+@export var rest_expand := 0.7
 @export var bob_amplitude := 1.6
 @export var bob_speed := 2.2
 
 @export_group("Sensing (region 1 ability)")
-@export var detect_radius := 56.0
-@export var lead_distance := 36.0
+## Fallback range for a plain sensable; Sensable nodes carry their own
+## sense_radius, so NPC objects can pull Pip from further away.
+@export var default_sense_radius := 96.0
+@export var lead_distance := 52.0  ## how far ahead of the player Pip leads
+@export var lead_track_rate := 9.0  ## how tightly Pip holds that lead (no outrunning)
 @export var reach_radius := 24.0   ## player this close to the object = arrived
 @export var lose_radius := 260.0   ## player this far from it = let it go
 
@@ -82,6 +89,7 @@ var sensed_object: Node2D
 var _time := 0.0
 var _notice_timer := 0.0
 var _scan_timer := 0.0
+var _rest := 0.0
 var _jitter := Vector2.ZERO
 var _jitter_timer := 0.0
 var _retreat_dir := Vector2.ZERO
@@ -132,7 +140,9 @@ func set_move_state(state: MoveState) -> void:
 			if emotion == Emotion.GREEN:
 				set_emotion(Emotion.GOLDEN)
 		MoveState.NOTICING:
-			_notice_timer = 0.7
+			# Short "oh!" beat — long enough to read, short enough that you
+			# don't walk past Pip while it hesitates.
+			_notice_timer = 0.45
 			_sprite.play("glow")
 			set_emotion(Emotion.GREEN)
 		MoveState.LEADING:
@@ -173,9 +183,15 @@ func _process_follow(delta: float) -> void:
 	if facing_value is Vector2 and absf(facing_value.x) > 0.1:
 		desired_side = -signf(facing_value.x)
 	_side = lerpf(_side, desired_side, 1.0 - exp(-2.0 * delta))
+	# Ease outward when the player is still so Pip isn't on your shoulder.
+	var speed := 0.0
+	var velocity_value = follow_target.get("velocity")
+	if velocity_value is Vector2:
+		speed = velocity_value.length()
+	_rest = lerpf(_rest, 1.0 if speed < 8.0 else 0.0, 1.0 - exp(-3.0 * delta))
+	var offset := Vector2(follow_offset.x * _side, follow_offset.y) * (1.0 + _rest * rest_expand)
 	var wander := Vector2(sin(_time * 0.9) * 4.0, sin(_time * 1.3 + 1.7) * 3.0)
-	var anchor := follow_target.global_position \
-			+ Vector2(follow_offset.x * _side, follow_offset.y) + wander
+	var anchor := follow_target.global_position + offset + wander
 	_drift_to(anchor, follow_damping, delta)
 
 	_scan_timer -= delta
@@ -219,10 +235,14 @@ func _process_leading(delta: float) -> void:
 			_reached_emitted = true
 			reached_object.emit(sensed_object)  # mend system hooks here later
 	else:
-		target = player_pos + to_object.limit_length(lead_distance) + Vector2(0, -12)
-	_drift_to(target, 5.0, delta)
+		# Sit clearly ahead of the player on the line to the object — but
+		# never past the object — so Pip's position itself points the way.
+		var ahead := minf(lead_distance, to_object.length() - 6.0)
+		target = player_pos + to_object.normalized() * ahead + Vector2(0, -10)
+	# Track the lead tightly so a full-speed player can't outrun Pip.
+	_drift_to(target, lead_track_rate, delta)
 	# Eager forward tilt — pulling ahead should feel like pulling.
-	var tilt := clampf((target.x - global_position.x) * 0.02, -0.2, 0.2)
+	var tilt := clampf((target.x - global_position.x) * 0.03, -0.25, 0.25)
 	_body.rotation = lerpf(_body.rotation, tilt, 1.0 - exp(-6.0 * delta))
 
 
@@ -265,8 +285,11 @@ func _update_glow(delta: float) -> void:
 	var pulse := 1.0 + sin(_time * speed * TAU) * depth
 	_glow.modulate = Color(_glow_color, clampf(strength * pulse * 0.9, 0.0, 1.0))
 	_glow.scale = Vector2.ONE * 0.9 * (1.0 + (pulse - 1.0) * 0.6)
+	# Tint the body toward the true emotion hue (only lightly lifted toward
+	# white) so the colour reads on the neutral placeholder. Real art will
+	# carry its own colour; this stays a harmless body tint.
 	_sprite.modulate = _sprite.modulate.lerp(
-			_glow_color.lerp(Color.WHITE, 0.45), 1.0 - exp(-3.0 * delta))
+			_glow_color.lerp(Color.WHITE, 0.25), 1.0 - exp(-3.0 * delta))
 
 
 # --- internals ---------------------------------------------------------------
@@ -276,14 +299,22 @@ func _drift_to(target: Vector2, damping: float, delta: float) -> void:
 
 
 func _nearest_sensable() -> Node2D:
+	# Each object decides its own reach (Sensable.sense_radius) and whether
+	# it is currently active (story gating); plain group members fall back
+	# to default_sense_radius. Nearest in-range wins.
 	var nearest: Node2D = null
-	var best := detect_radius
+	var best := INF
 	for node in get_tree().get_nodes_in_group("pip_sensable"):
 		var node_2d := node as Node2D
 		if node_2d == null:
 			continue
+		var radius := default_sense_radius
+		if node_2d is Sensable:
+			if not node_2d.active:
+				continue
+			radius = node_2d.sense_radius
 		var distance := global_position.distance_to(node_2d.global_position)
-		if distance <= best:
+		if distance <= radius and distance < best:
 			best = distance
 			nearest = node_2d
 	return nearest
