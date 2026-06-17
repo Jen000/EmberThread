@@ -75,6 +75,17 @@ Pip hovers where they are. Smoke test for the whole sensing arc:
 godot --headless --path . res://tests/pip_smoke.tscn
 ```
 
+## Stand-in art (temporary)
+
+While building, a whole-sprite fae stand-in is shown. If `pip_placeholder`
+is registered, every state animation uses that single front-facing still
+(scaled down) and the **glow halo alone carries emotion** — the fae keeps
+its own colours rather than being tinted. Movement states still read
+normally. Source art lives in `pip/` (raw, `.gdignore`d); regenerate with
+`python3 tools/conform_character_art.py`. Real per-state Pip frames
+(`pip_idle` …) overwrite this with zero code edits, and body tinting
+resumes.
+
 ## Playground (debug builds, in the test room)
 
 `1` calm · `2` distressed · `3` cycle emotion · `4` shimmer ·

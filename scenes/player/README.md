@@ -44,6 +44,20 @@ The palette-swap shader (later) recolours skin on **body**, eye colour on
 **clothes**. **Adding a variant:** drop a correctly-named sheet into
 `assets/sprites/player/` — no code changes.
 
+## Stand-in art (temporary)
+
+While building, a whole-sprite stand-in (the cozy mender art) is shown
+instead of the four layers. If `player_placeholder_idle` is registered,
+`_setup_visual()` shows the `Placeholder` `AnimatedSprite2D` (built from
+`player_placeholder_<anim>` frames) and hides `Visual`; the modular layers
+are still built underneath. Delete the `player_placeholder_*` files (real
+layered art arrives) and the modular layers return — zero code edits.
+
+Source art lives in `character/` (raw, `.gdignore`d); regenerate the
+conformed frames with `python3 tools/conform_character_art.py`. The flat
+stand-in can't be palette-swapped or recoloured — that's why it's
+temporary; customisation acts on the real modular layers.
+
 ## Conventions
 
 - Scene origin is at the feet (collision is a small box there); the

@@ -96,6 +96,7 @@ var _retreat_dir := Vector2.ZERO
 var _side := -1.0
 var _glow_color := Color.WHITE
 var _reached_emitted := false
+var _using_placeholder := false
 
 @onready var _body: Node2D = $Body
 @onready var _sprite: AnimatedSprite2D = $Body/Sprite
@@ -284,12 +285,15 @@ func _update_glow(delta: float) -> void:
 
 	var pulse := 1.0 + sin(_time * speed * TAU) * depth
 	_glow.modulate = Color(_glow_color, clampf(strength * pulse * 0.9, 0.0, 1.0))
-	_glow.scale = Vector2.ONE * 0.9 * (1.0 + (pulse - 1.0) * 0.6)
-	# Tint the body toward the true emotion hue (only lightly lifted toward
-	# white) so the colour reads on the neutral placeholder. Real art will
-	# carry its own colour; this stays a harmless body tint.
-	_sprite.modulate = _sprite.modulate.lerp(
-			_glow_color.lerp(Color.WHITE, 0.25), 1.0 - exp(-3.0 * delta))
+	# A wider halo when the body is the larger fae stand-in.
+	var glow_base := 1.4 if _using_placeholder else 0.9
+	_glow.scale = Vector2.ONE * glow_base * (1.0 + (pulse - 1.0) * 0.6)
+	# Tint the block stand-in toward the emotion hue so colour reads on its
+	# neutral body. The fae stand-in keeps its own colours — the halo alone
+	# carries emotion there. Real art will carry its own colour either way.
+	if not _using_placeholder:
+		_sprite.modulate = _sprite.modulate.lerp(
+				_glow_color.lerp(Color.WHITE, 0.25), 1.0 - exp(-3.0 * delta))
 
 
 # --- internals ---------------------------------------------------------------
@@ -323,6 +327,20 @@ func _nearest_sensable() -> Node2D:
 func _build_frames() -> void:
 	var frames := SpriteFrames.new()
 	frames.remove_animation(&"default")
+	# Whole-sprite stand-in art (pip_placeholder): show the fae still in every
+	# state, scaled down, and let the glow halo carry emotion instead of
+	# tinting the body. Real per-state Pip frames overwrite this with no edits.
+	if AssetRegistry.has_asset("pip_placeholder"):
+		_using_placeholder = true
+		var fae := AssetRegistry.get_sprite("pip_placeholder")
+		for anim in ANIM_FPS:
+			frames.add_animation(anim)
+			frames.set_animation_speed(anim, ANIM_FPS[anim])
+			frames.set_animation_loop(anim, true)
+			frames.add_frame(anim, fae)
+		_sprite.sprite_frames = frames
+		_sprite.scale = Vector2(0.6, 0.6)
+		return
 	for anim in ANIM_FPS:
 		frames.add_animation(anim)
 		frames.set_animation_speed(anim, ANIM_FPS[anim])

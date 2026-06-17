@@ -14,6 +14,32 @@ still present at startup in debug builds.
 
 | Asset path | Source pack | Notes |
 |---|---|---|
+| res://assets/sprites/pip/pip_placeholder.png | Stand-in art: tiny humanoid fae (Pip) | front still; glow halo carries emotion |
+| res://assets/sprites/player/player_placeholder_walk_right_05.png | Stand-in art: A cozy pixel art RPG (mender) | walk right |
+| res://assets/sprites/player/player_placeholder_walk_right_04.png | Stand-in art: A cozy pixel art RPG (mender) | walk right |
+| res://assets/sprites/player/player_placeholder_walk_right_03.png | Stand-in art: A cozy pixel art RPG (mender) | walk right |
+| res://assets/sprites/player/player_placeholder_walk_right_02.png | Stand-in art: A cozy pixel art RPG (mender) | walk right |
+| res://assets/sprites/player/player_placeholder_walk_right_01.png | Stand-in art: A cozy pixel art RPG (mender) | walk right |
+| res://assets/sprites/player/player_placeholder_walk_right_00.png | Stand-in art: A cozy pixel art RPG (mender) | walk right |
+| res://assets/sprites/player/player_placeholder_walk_left_05.png | Stand-in art: A cozy pixel art RPG (mender) | walk left |
+| res://assets/sprites/player/player_placeholder_walk_left_04.png | Stand-in art: A cozy pixel art RPG (mender) | walk left |
+| res://assets/sprites/player/player_placeholder_walk_left_03.png | Stand-in art: A cozy pixel art RPG (mender) | walk left |
+| res://assets/sprites/player/player_placeholder_walk_left_02.png | Stand-in art: A cozy pixel art RPG (mender) | walk left |
+| res://assets/sprites/player/player_placeholder_walk_left_01.png | Stand-in art: A cozy pixel art RPG (mender) | walk left |
+| res://assets/sprites/player/player_placeholder_walk_left_00.png | Stand-in art: A cozy pixel art RPG (mender) | walk left |
+| res://assets/sprites/player/player_placeholder_walk_up_05.png | Stand-in art: A cozy pixel art RPG (mender) | walk up |
+| res://assets/sprites/player/player_placeholder_walk_up_04.png | Stand-in art: A cozy pixel art RPG (mender) | walk up |
+| res://assets/sprites/player/player_placeholder_walk_up_03.png | Stand-in art: A cozy pixel art RPG (mender) | walk up |
+| res://assets/sprites/player/player_placeholder_walk_up_02.png | Stand-in art: A cozy pixel art RPG (mender) | walk up |
+| res://assets/sprites/player/player_placeholder_walk_up_01.png | Stand-in art: A cozy pixel art RPG (mender) | walk up |
+| res://assets/sprites/player/player_placeholder_walk_up_00.png | Stand-in art: A cozy pixel art RPG (mender) | walk up |
+| res://assets/sprites/player/player_placeholder_walk_down_05.png | Stand-in art: A cozy pixel art RPG (mender) | walk down |
+| res://assets/sprites/player/player_placeholder_walk_down_04.png | Stand-in art: A cozy pixel art RPG (mender) | walk down |
+| res://assets/sprites/player/player_placeholder_walk_down_03.png | Stand-in art: A cozy pixel art RPG (mender) | walk down |
+| res://assets/sprites/player/player_placeholder_walk_down_02.png | Stand-in art: A cozy pixel art RPG (mender) | walk down |
+| res://assets/sprites/player/player_placeholder_walk_down_01.png | Stand-in art: A cozy pixel art RPG (mender) | walk down |
+| res://assets/sprites/player/player_placeholder_walk_down_00.png | Stand-in art: A cozy pixel art RPG (mender) | walk down |
+| res://assets/sprites/player/player_placeholder_idle_00.png | Stand-in art: A cozy pixel art RPG (mender) | front idle (trimmed) |
 
 <!-- Example row:
 | res://assets/tilesets/coastal/tile_coastal_grass_01.png | Kenney Tiny Town | recoloured to coastal palette |

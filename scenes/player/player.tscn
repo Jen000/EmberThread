@@ -20,6 +20,9 @@ position = Vector2(0, -16)
 
 [node name="Hair" type="AnimatedSprite2D" parent="Visual"]
 
+[node name="Placeholder" type="AnimatedSprite2D" parent="."]
+visible = false
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -3)
 shape = SubResource("RectangleShape2D_feet")

@@ -53,11 +53,51 @@ var facing := Vector2.DOWN
 	"face": $Visual/Face as AnimatedSprite2D,
 	"hair": $Visual/Hair as AnimatedSprite2D,
 }
+@onready var _visual: Node2D = $Visual
+@onready var _placeholder: AnimatedSprite2D = $Placeholder
+
+## The AnimatedSprite2D(s) driven by _update_animation — either the four
+## modular layers or, while stand-in art is present, the single flat
+## placeholder sprite.
+var _active: Array[AnimatedSprite2D] = []
 
 
 func _ready() -> void:
-	_rebuild_layer_frames()
+	_setup_visual()
 	_play_all("idle")
+
+
+## Modular layers are the real target and are always built. If whole-sprite
+## stand-in art is present (player_placeholder_*), it is shown instead until
+## real layered art lands — delete those files and the modular layers return,
+## with zero code edits.
+func _setup_visual() -> void:
+	_rebuild_layer_frames()
+	if AssetRegistry.has_asset("player_placeholder_idle"):
+		_placeholder.sprite_frames = _build_placeholder_frames()
+		var texture := AssetRegistry.get_sprite("player_placeholder_idle")
+		if texture != null:
+			_placeholder.position = Vector2(0, -texture.get_height() / 2.0)  # feet at origin
+		_placeholder.visible = true
+		_visual.visible = false
+		_active = [_placeholder]
+	else:
+		_placeholder.visible = false
+		_visual.visible = true
+		_active = [_layers["body"], _layers["clothes"], _layers["face"], _layers["hair"]]
+
+
+func _build_placeholder_frames() -> SpriteFrames:
+	var frames := SpriteFrames.new()
+	frames.remove_animation(&"default")
+	for anim in SHEET_LAYOUT:
+		var key := "player_placeholder_%s" % anim
+		frames.add_animation(anim)
+		frames.set_animation_loop(anim, true)
+		frames.set_animation_speed(anim, IDLE_FPS if anim == "idle" else WALK_FPS)
+		for texture in AssetRegistry.get_frames(key):
+			frames.add_frame(anim, texture)
+	return frames
 
 
 func _physics_process(delta: float) -> void:
@@ -133,15 +173,13 @@ func _facing_name() -> String:
 
 
 func _play_all(anim: String) -> void:
-	for layer in _layers:
-		var sprite: AnimatedSprite2D = _layers[layer]
+	for sprite in _active:
 		if sprite.animation != anim or not sprite.is_playing():
 			sprite.play(anim)
 
 
 func _freeze_all(anim: String) -> void:
-	for layer in _layers:
-		var sprite: AnimatedSprite2D = _layers[layer]
+	for sprite in _active:
 		if sprite.animation != anim or sprite.is_playing():
 			sprite.animation = anim
 			sprite.frame = 0
