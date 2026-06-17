@@ -23,6 +23,11 @@ Read these rather than re-deriving anything; they are the source of truth.
 - **One region fully before the next.** Coastal Town is the reference implementation; Forest Village, Mountain Shrine Town, and Castle Ruins follow its patterns. Each region should be complete and playable before expanding.
 - **Work in scoped sessions.** Pull the relevant GDD section for the day's task rather than loading the whole design at once.
 
+## Git workflow
+
+- **Develop on a feature branch and push there — never merge to `main`.** The developer pulls the branch, tests locally, vets it, and merges to `main` themselves. Stop at "pushed to the branch; here's what to test."
+- **Don't open pull requests unless asked.** Don't push to `main` unless the developer explicitly says so for that change.
+
 ## Standing rules
 
 - **Document every system.** Ship each as a reusable component with a short README explaining how to add content to it (how to add an NPC, a comfort item, a mending interaction, a region).
