@@ -1,0 +1,100 @@
+{
+  "group_id": "df5e7d4c-26ea-4a04-a64d-4e5e5f687ac5",
+  "states": [
+    {
+      "character": {
+        "id": "76aa568e-b68f-4511-a783-8e9c14ad550e",
+        "name": "A cozy pixel art RPG",
+        "prompt": "A cozy pixel art RPG character: a rounded head about half the character's total height, a compact soft body, and short legs. A young adult mender \u2014 gentle, warm, approachable, deliberately ordinary-looking craftsperson, standing in a relaxed front-facing idle pose. Light skin with a warm undertone. Medium-length, slightly wavy chestnut brown hair falling loosely around the jaw and neck. Blue eyes, clean simple face with no markings. Wearing a cream-colored tunic with a tan leather-brown craftsperson's apron layered over the top, sleeves rolled up to the elbow with a darker brown cuff detail. A worn warm-brown leather satchel is slung diagonally across the body, with a needle, a spool of thread, and small scissors visibly poking out of the top \u2014 the satchel must read clearly in silhouette. Soft rounded pixel art style, crisp clean pixel edges, no anti-aliasing, no dithering, warm inviting color palette, transparent background.",
+        "size": {
+          "width": 72,
+          "height": 72
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-06-17T15:32:00.086992+00:00"
+      },
+      "folder": "A_cozy_pixel_art_RPG",
+      "frames": {
+        "rotations": {
+          "south": "A_cozy_pixel_art_RPG/rotations/south.png",
+          "south-east": "A_cozy_pixel_art_RPG/rotations/south-east.png",
+          "east": "A_cozy_pixel_art_RPG/rotations/east.png",
+          "north-east": "A_cozy_pixel_art_RPG/rotations/north-east.png",
+          "north": "A_cozy_pixel_art_RPG/rotations/north.png",
+          "north-west": "A_cozy_pixel_art_RPG/rotations/north-west.png",
+          "west": "A_cozy_pixel_art_RPG/rotations/west.png",
+          "south-west": "A_cozy_pixel_art_RPG/rotations/south-west.png"
+        },
+        "animations": {
+          "Walking": {
+            "south": [
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_005.png"
+            ],
+            "west": [
+              "A_cozy_pixel_art_RPG/animations/Walking/west/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/west/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/west/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/west/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/west/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/west/frame_005.png"
+            ],
+            "north": [
+              "A_cozy_pixel_art_RPG/animations/Walking/north/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north/frame_005.png"
+            ],
+            "east": [
+              "A_cozy_pixel_art_RPG/animations/Walking/east/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/east/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/east/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/east/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/east/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/east/frame_005.png"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "character": {
+        "id": "5a4e6905-2ff4-4027-86cf-d4fe170cd785",
+        "name": "A cozy pixel art RPG (copy 2)",
+        "prompt": "A cozy pixel art RPG character: a rounded head about half the character's total height, a compact soft body, and short legs. A young adult mender \u2014 gentle, warm, approachable, deliberately ordinary-looking craftsperson, standing in a relaxed front-facing idle pose. Light skin with a warm undertone. Medium-length, slightly wavy chestnut brown hair falling loosely around the jaw and neck. Blue eyes, clean simple face with no markings. Wearing a cream-colored tunic with a tan leather-brown craftsperson's apron layered over the top, sleeves rolled up to the elbow with a darker brown cuff detail. A worn warm-brown leather satchel is slung diagonally across the body, with a needle, a spool of thread, and small scissors visibly poking out of the top \u2014 the satchel must read clearly in silhouette. Soft rounded pixel art style, crisp clean pixel edges, no anti-aliasing, no dithering, warm inviting color palette, transparent background.",
+        "size": {
+          "width": 72,
+          "height": 72
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-06-17T15:35:54.49638+00:00"
+      },
+      "folder": "A_cozy_pixel_art_RPG_copy_2",
+      "frames": {
+        "rotations": {
+          "south": "A_cozy_pixel_art_RPG_copy_2/rotations/south.png",
+          "south-east": "A_cozy_pixel_art_RPG_copy_2/rotations/south-east.png",
+          "east": "A_cozy_pixel_art_RPG_copy_2/rotations/east.png",
+          "north-east": "A_cozy_pixel_art_RPG_copy_2/rotations/north-east.png",
+          "north": "A_cozy_pixel_art_RPG_copy_2/rotations/north.png",
+          "north-west": "A_cozy_pixel_art_RPG_copy_2/rotations/north-west.png",
+          "west": "A_cozy_pixel_art_RPG_copy_2/rotations/west.png",
+          "south-west": "A_cozy_pixel_art_RPG_copy_2/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.0",
+  "export_date": "2026-06-17T15:53:34.344367"
+}
