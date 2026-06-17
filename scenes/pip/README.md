@@ -1,16 +1,26 @@
 # Pip
 
-The emotional heart of the game: a tiny glowing fae who chose to follow
-the player. Two independent axes, per the GDD — a movement state machine
-and an emotion (glow) language. Movement is communication (design
-principle 9); colour is never the only signal.
+The emotional heart of the game: a tiny floating **glowing orb** who chose
+to follow the player. (Pip's detailed character look lives in a dialogue
+portrait, not the in-world sprite.) Two independent axes, per the GDD — a
+movement state machine and an emotion (glow) language. Movement is
+communication (design principle 9); colour is never the only signal.
+
+## In-world visual (orb)
+
+A soft round `Sprite2D` core (`Body/Orb`, a 16px radial dot) plus a
+`PointLight2D` (`Body/Light`) for the glow falloff — no detailed sprite,
+no shader. `_update_glow()` drives both each frame: the orb's `modulate`
+and the light's `color` take the current emotion colour; a gentle sine
+"breathes" the orb scale/alpha and the light energy while idle. The whole
+`Body` bobs so Pip is always slightly airborne, never grounded.
 
 ## Movement states (`Pip.MoveState`)
 
 | State | Reads as | Behaviour |
 |---|---|---|
 | `FOLLOW` | calm, connected | floats at the player's quieter side (flips with facing), smooth drift + gentle bob; scans for sensable objects |
-| `NOTICING` | "oh!" | brief hold (~0.45s): glow-pulse animation, turns curious-green, leans toward what was sensed, then leads |
+| `NOTICING` | "oh!" | brief hold (~0.45s): stronger glow pulse, turns curious-green, leans toward what was sensed, then leads |
 | `LEADING` | eager, pulling ahead | sits `lead_distance` ahead of the player on the line to the object (never past it), tracked tightly so a full-speed player can't outrun Pip; tilts forward; hovers over the object on arrival and emits `reached_object` |
 | `DISTRESSED` | jagged, withdrawn | retreats `retreat_distance` away from the player with erratic jitter, faster snappier motion, reduced bob |
 
@@ -34,10 +44,12 @@ pulse rhythm so the language survives colourblind play:
 | PURPLE (excited) | purple | quick shimmer |
 | SHIMMER (final moment only) | hue-cycling | unique chime (`pip_shimmer_chime` SFX key) |
 
-Set with `set_emotion()`; `play_shimmer()` is the ending's entry point.
-Colour/rhythm values live in one place: `EMOTION_GLOW` in `pip.gd`
-(hexes provisional until the Art Brief palette lands). **Reduced sensory
-mode** (`Settings.reduced_sensory`) caps flicker speed and depth.
+Set with `set_emotion()` — the simple "change Pip's colour" entry point;
+`play_shimmer()` is the ending's entry point. Colour/rhythm values live in
+plain data, never a shader: `EMOTION_GLOW` in `pip.gd`, with the calm gold
+exposed as the exported `calm_color` so it's tweakable in the inspector.
+The colour smoothly tweens onto the orb and light. **Reduced sensory mode**
+(`Settings.reduced_sensory`) caps flicker speed and depth.
 
 ## Signals
 
@@ -57,11 +69,12 @@ working example.
 
 ## Art & audio seams
 
-Frames resolve through AssetRegistry keys `pip_idle` (3), `pip_distressed`
-(3), `pip_leading` (2), `pip_glow` (3), `pip_shimmer` (6–8 tolerated) —
-real frames overwrite the stand-ins, zero code edits. The glow is an
-additive gradient sprite for now; upgrade to the custom glow shader when
-real art lands. Per-emotion ambient sound (optional layer) will use
+The orb is procedural (gradient sub-resources in `pip.tscn`), so the
+in-world Pip needs no sprite assets. The detailed fae look is deferred to a
+dialogue portrait (separate task). The old per-state stand-ins
+(`pip_idle` …) and the fae stand-in (`pip_placeholder.png`) are no longer
+used in-world — left in place for now; the fae is the likely source for
+that future portrait. Per-emotion ambient sound (optional layer) will use
 `pip_emotion_<name>` SFX keys when the audio pass happens.
 
 ## Wiring & verification
@@ -74,17 +87,6 @@ Pip hovers where they are. Smoke test for the whole sensing arc:
 ```sh
 godot --headless --path . res://tests/pip_smoke.tscn
 ```
-
-## Stand-in art (temporary)
-
-While building, a whole-sprite fae stand-in is shown. If `pip_placeholder`
-is registered, every state animation uses that single front-facing still
-(scaled down) and the **glow halo alone carries emotion** — the fae keeps
-its own colours rather than being tinted. Movement states still read
-normally. Source art lives in `pip/` (raw, `.gdignore`d); regenerate with
-`python3 tools/conform_character_art.py`. Real per-state Pip frames
-(`pip_idle` …) overwrite this with zero code edits, and body tinting
-resumes.
 
 ## Playground (debug builds, in the test room)
 
