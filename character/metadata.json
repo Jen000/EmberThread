@@ -29,13 +29,13 @@
         },
         "animations": {
           "Walking": {
-            "south": [
-              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_000.png",
-              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_001.png",
-              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_002.png",
-              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_003.png",
-              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_004.png",
-              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_005.png"
+            "north-west": [
+              "A_cozy_pixel_art_RPG/animations/Walking/north-west/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-west/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-west/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-west/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-west/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-west/frame_005.png"
             ],
             "west": [
               "A_cozy_pixel_art_RPG/animations/Walking/west/frame_000.png",
@@ -45,6 +45,30 @@
               "A_cozy_pixel_art_RPG/animations/Walking/west/frame_004.png",
               "A_cozy_pixel_art_RPG/animations/Walking/west/frame_005.png"
             ],
+            "south": [
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south/frame_005.png"
+            ],
+            "south-east": [
+              "A_cozy_pixel_art_RPG/animations/Walking/south-east/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-east/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-east/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-east/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-east/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-east/frame_005.png"
+            ],
+            "south-west": [
+              "A_cozy_pixel_art_RPG/animations/Walking/south-west/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-west/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-west/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-west/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-west/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/south-west/frame_005.png"
+            ],
             "north": [
               "A_cozy_pixel_art_RPG/animations/Walking/north/frame_000.png",
               "A_cozy_pixel_art_RPG/animations/Walking/north/frame_001.png",
@@ -52,6 +76,14 @@
               "A_cozy_pixel_art_RPG/animations/Walking/north/frame_003.png",
               "A_cozy_pixel_art_RPG/animations/Walking/north/frame_004.png",
               "A_cozy_pixel_art_RPG/animations/Walking/north/frame_005.png"
+            ],
+            "north-east": [
+              "A_cozy_pixel_art_RPG/animations/Walking/north-east/frame_000.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-east/frame_001.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-east/frame_002.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-east/frame_003.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-east/frame_004.png",
+              "A_cozy_pixel_art_RPG/animations/Walking/north-east/frame_005.png"
             ],
             "east": [
               "A_cozy_pixel_art_RPG/animations/Walking/east/frame_000.png",
@@ -96,5 +128,5 @@
     }
   ],
   "export_version": "3.0",
-  "export_date": "2026-06-17T15:53:34.344367"
+  "export_date": "2026-06-18T16:42:41.015215"
 }

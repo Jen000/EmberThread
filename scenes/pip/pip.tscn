@@ -1,29 +1,41 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/pip/pip.gd" id="1_pip"]
 
-[sub_resource type="Gradient" id="Gradient_glow"]
-offsets = PackedFloat32Array(0, 0.45, 1)
-colors = PackedColorArray(1, 1, 1, 0.85, 1, 1, 1, 0.28, 1, 1, 1, 0)
+[sub_resource type="Gradient" id="Gradient_orb"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.85, 1, 1, 1, 0)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_glow"]
-gradient = SubResource("Gradient_glow")
-width = 32
-height = 32
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_orb"]
+gradient = SubResource("Gradient_orb")
+width = 16
+height = 16
 fill = 1
 fill_from = Vector2(0.5, 0.5)
-fill_to = Vector2(0.5, 0)
+fill_to = Vector2(1, 0.5)
 
-[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
-blend_mode = 1
+[sub_resource type="Gradient" id="Gradient_light"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
 
 [node name="Pip" type="Node2D" groups=["pip"]]
 script = ExtResource("1_pip")
 
 [node name="Body" type="Node2D" parent="."]
 
-[node name="Glow" type="Sprite2D" parent="Body"]
-material = SubResource("CanvasItemMaterial_add")
-texture = SubResource("GradientTexture2D_glow")
+[node name="Light" type="PointLight2D" parent="Body"]
+color = Color(1, 0.88, 0.62, 1)
+energy = 0.9
+texture = SubResource("GradientTexture2D_light")
+texture_scale = 0.5
 
-[node name="Sprite" type="AnimatedSprite2D" parent="Body"]
+[node name="Orb" type="Sprite2D" parent="Body"]
+texture = SubResource("GradientTexture2D_orb")

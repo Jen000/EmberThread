@@ -1,25 +1,23 @@
 class_name Pip
 extends Node2D
-## Pip — the tiny glowing fae who chose to follow the player.
+## Pip — the tiny floating light who chose to follow the player.
 ##
-## Two independent axes, per the GDD (§9, §17):
+## In-world, Pip is a simple glowing orb (a soft round Sprite2D core plus a
+## PointLight2D for the glow falloff), never a detailed character — that
+## detail lives in a separate dialogue portrait, not here. Two independent
+## axes drive it, per the GDD (§9, §17):
 ## - MoveState (the AI state machine): FOLLOW / NOTICING / LEADING /
 ##   DISTRESSED. Movement IS communication (design principle 9) — gentle
-##   drift, eager pull-ahead and jagged retreat must each read distinctly
+##   drift, eager pull-ahead and jagged retreat each read distinctly
 ##   without any tutorial.
-## - Emotion (the glow language): seven colours with smooth transitions.
-##   Colour is never the only signal: every emotion also has its own pulse
-##   rhythm and depth, so the language survives colourblind play, and
-##   reduced sensory mode softens all of it.
+## - Emotion (the glow colour): seven states with smooth transitions. The
+##   colour lives in plain data (EMOTION_GLOW / calm_color) and is applied
+##   to the orb's modulate and the light's colour — no shader — so it is
+##   trivial to tween or swap. set_emotion() is the swap entry point.
 ##
 ## Pip is a sibling of the player, never a child node — following is a
 ## choice (principle 7). With no follow_target, Pip hovers where they are
-## (how the prologue finds them).
-##
-## Frames resolve through AssetRegistry keys (pip_idle, pip_distressed,
-## pip_leading, pip_glow, pip_shimmer); real art swaps in with zero edits
-## here. The glow is an additive gradient sprite for now — upgrade path to
-## the custom glow shader once the artist's frames land.
+## (how the prologue finds them), always slightly airborne.
 
 signal state_changed(state: MoveState)
 signal emotion_changed(emotion: Emotion)
@@ -28,13 +26,15 @@ signal reached_object(object: Node2D)
 enum MoveState { FOLLOW, NOTICING, LEADING, DISTRESSED }
 enum Emotion { GOLDEN, BLUE, RED, GREEN, WHITE, PURPLE, SHIMMER }
 
-## Glow colour, pulse speed (Hz), pulse depth and brightness per emotion.
-## The rhythm carries meaning alongside the colour: safe breathes slowly,
-## overwhelmed flickers fast (cozy-capped), afraid is dim and near-still.
-## Hex values are provisional until the Art Brief palette lands — they
-## live only here.
+## Per-emotion glow: colour, pulse speed (Hz), pulse depth and brightness.
+## The rhythm carries meaning alongside the colour — safe breathes slowly,
+## overwhelmed flickers fast (cozy-capped), afraid is dim and near-still —
+## so the language survives colourblind play. GOLDEN's colour comes from
+## the exported `calm_color` instead of this table (see _emotion_color).
+## Values are provisional until the Art Brief palette lands; they live only
+## here, never baked into a shader.
 const EMOTION_GLOW := {
-	Emotion.GOLDEN: { "color": Color(1.0, 0.78, 0.35), "speed": 0.38, "depth": 0.12, "strength": 0.85 },
+	Emotion.GOLDEN: { "color": Color(1.0, 0.88, 0.62), "speed": 0.38, "depth": 0.12, "strength": 0.85 },
 	Emotion.BLUE: { "color": Color(0.30, 0.42, 0.75), "speed": 0.45, "depth": 0.06, "strength": 0.55 },
 	Emotion.RED: { "color": Color(0.92, 0.33, 0.25), "speed": 4.5, "depth": 0.22, "strength": 1.0 },
 	Emotion.GREEN: { "color": Color(0.55, 0.83, 0.55), "speed": 1.6, "depth": 0.18, "strength": 0.9 },
@@ -43,20 +43,21 @@ const EMOTION_GLOW := {
 	Emotion.SHIMMER: { "color": Color(1.0, 1.0, 1.0), "speed": 1.2, "depth": 0.15, "strength": 1.0 },
 }
 
-const ANIM_FPS := {
-	"idle": 4.0,
-	"distressed": 9.0,
-	"leading": 6.0,
-	"glow": 6.0,
-	"shimmer": 8.0,
-}
-
 ## Scene wiring for who Pip follows (resolved in _ready). At runtime, set
 ## `follow_target` directly instead — that's the moment Pip chooses to
 ## follow (prologue), or stops.
 @export var follow_target_path: NodePath
 
 var follow_target: Node2D
+
+@export_group("Orb appearance")
+## Default / calm colour — warm pale gold. The simplest knob to change
+## Pip's resting colour; emotional states swap via set_emotion().
+@export var calm_color := Color(1.0, 0.88, 0.62)
+## Resting scale of the orb core (the dot texture is 16px).
+@export var orb_base_scale := 0.85
+## Resting energy of the glow light; breathing modulates around it.
+@export var light_base_energy := 0.9
 
 @export_group("Follow feel")
 @export var follow_offset := Vector2(12.0, -18.0)
@@ -96,19 +97,16 @@ var _retreat_dir := Vector2.ZERO
 var _side := -1.0
 var _glow_color := Color.WHITE
 var _reached_emitted := false
-var _using_placeholder := false
 
 @onready var _body: Node2D = $Body
-@onready var _sprite: AnimatedSprite2D = $Body/Sprite
-@onready var _glow: Sprite2D = $Body/Glow
+@onready var _orb: Sprite2D = $Body/Orb
+@onready var _light: PointLight2D = $Body/Light
 
 
 func _ready() -> void:
 	if not follow_target_path.is_empty():
 		follow_target = get_node_or_null(follow_target_path)
-	_build_frames()
-	_glow_color = EMOTION_GLOW[emotion]["color"]
-	_sprite.play("idle")
+	_glow_color = _emotion_color(emotion)
 
 
 func _physics_process(delta: float) -> void:
@@ -124,6 +122,7 @@ func _physics_process(delta: float) -> void:
 			_process_distressed(delta)
 	if move_state != MoveState.LEADING:
 		_body.rotation = lerpf(_body.rotation, 0.0, 1.0 - exp(-6.0 * delta))
+	# Bobbing keeps Pip airborne; it never rests on the ground.
 	var bob_scale := 0.35 if move_state == MoveState.DISTRESSED else 1.0
 	_body.position = Vector2(0.0, sin(_time * bob_speed) * bob_amplitude * bob_scale)
 	_update_glow(delta)
@@ -137,30 +136,28 @@ func set_move_state(state: MoveState) -> void:
 	match state:
 		MoveState.FOLLOW:
 			sensed_object = null
-			_sprite.play("idle")
 			if emotion == Emotion.GREEN:
 				set_emotion(Emotion.GOLDEN)
 		MoveState.NOTICING:
 			# Short "oh!" beat — long enough to read, short enough that you
 			# don't walk past Pip while it hesitates.
 			_notice_timer = 0.45
-			_sprite.play("glow")
 			set_emotion(Emotion.GREEN)
 		MoveState.LEADING:
-			_sprite.play("leading")
+			pass
 		MoveState.DISTRESSED:
 			sensed_object = null
 			_retreat_dir = Vector2.ZERO
-			_sprite.play("distressed")
 	state_changed.emit(state)
 
 
+## Swap Pip's emotional colour. Smoothly tweened onto the orb and light in
+## _update_glow — the simple "change Pip's colour" entry point.
 func set_emotion(value: Emotion) -> void:
 	if value == emotion:
 		return
 	emotion = value
 	if value == Emotion.SHIMMER:
-		_sprite.play("shimmer")
 		# The final moment's unique chime — colourblind players still feel
 		# something new happening (accessibility requirement). Clip lands
 		# at the SoundManager key when SFX are made.
@@ -267,9 +264,9 @@ func _process_distressed(delta: float) -> void:
 
 func _update_glow(delta: float) -> void:
 	var params: Dictionary = EMOTION_GLOW[emotion]
-	var target_color: Color = params["color"]
+	var target_color := _emotion_color(emotion)
 	if emotion == Emotion.SHIMMER:
-		target_color = Color.from_hsv(fmod(_time * 0.25, 1.0), 0.4, 1.0)
+		target_color = Color.from_hsv(fmod(_time * 0.25, 1.0), 0.45, 1.0)
 	_glow_color = _glow_color.lerp(target_color, 1.0 - exp(-3.0 * delta))
 
 	var depth: float = params["depth"]
@@ -283,20 +280,25 @@ func _update_glow(delta: float) -> void:
 		speed = minf(speed, 2.2)
 		strength *= 0.85
 
-	var pulse := 1.0 + sin(_time * speed * TAU) * depth
-	_glow.modulate = Color(_glow_color, clampf(strength * pulse * 0.9, 0.0, 1.0))
-	# A wider halo when the body is the larger fae stand-in.
-	var glow_base := 1.4 if _using_placeholder else 0.9
-	_glow.scale = Vector2.ONE * glow_base * (1.0 + (pulse - 1.0) * 0.6)
-	# Tint the block stand-in toward the emotion hue so colour reads on its
-	# neutral body. The fae stand-in keeps its own colours — the halo alone
-	# carries emotion there. Real art will carry its own colour either way.
-	if not _using_placeholder:
-		_sprite.modulate = _sprite.modulate.lerp(
-				_glow_color.lerp(Color.WHITE, 0.25), 1.0 - exp(-3.0 * delta))
+	# Idle breathing: a soft sine drives the orb scale, its alpha, and the
+	# light energy together.
+	var breath := sin(_time * speed * TAU)
+	_orb.scale = Vector2.ONE * orb_base_scale * (1.0 + breath * depth * 0.6)
+	# Hot near-white core tinted by the emotion colour.
+	_orb.modulate = Color(_glow_color.lerp(Color.WHITE, 0.5),
+			clampf(strength * (0.92 + breath * 0.08), 0.0, 1.0))
+	_light.color = _glow_color
+	_light.energy = maxf(light_base_energy * strength * (1.0 + breath * depth), 0.0)
 
 
 # --- internals ---------------------------------------------------------------
+
+func _emotion_color(value: Emotion) -> Color:
+	# Calm gold comes from the exported knob; the rest from the table.
+	if value == Emotion.GOLDEN:
+		return calm_color
+	return EMOTION_GLOW[value]["color"]
+
 
 func _drift_to(target: Vector2, damping: float, delta: float) -> void:
 	global_position = global_position.lerp(target, 1.0 - exp(-damping * delta))
@@ -322,29 +324,3 @@ func _nearest_sensable() -> Node2D:
 			best = distance
 			nearest = node_2d
 	return nearest
-
-
-func _build_frames() -> void:
-	var frames := SpriteFrames.new()
-	frames.remove_animation(&"default")
-	# Whole-sprite stand-in art (pip_placeholder): show the fae still in every
-	# state, scaled down, and let the glow halo carry emotion instead of
-	# tinting the body. Real per-state Pip frames overwrite this with no edits.
-	if AssetRegistry.has_asset("pip_placeholder"):
-		_using_placeholder = true
-		var fae := AssetRegistry.get_sprite("pip_placeholder")
-		for anim in ANIM_FPS:
-			frames.add_animation(anim)
-			frames.set_animation_speed(anim, ANIM_FPS[anim])
-			frames.set_animation_loop(anim, true)
-			frames.add_frame(anim, fae)
-		_sprite.sprite_frames = frames
-		_sprite.scale = Vector2(0.6, 0.6)
-		return
-	for anim in ANIM_FPS:
-		frames.add_animation(anim)
-		frames.set_animation_speed(anim, ANIM_FPS[anim])
-		frames.set_animation_loop(anim, true)
-		for texture in AssetRegistry.get_frames("pip_" + anim):
-			frames.add_frame(anim, texture)
-	_sprite.sprite_frames = frames
