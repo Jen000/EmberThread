@@ -8,10 +8,13 @@ accessibility flags.
 ## Settings
 
 Accessibility flags live here from day one (scaffolded as systems are
-built, never retrofitted). Currently: `reduced_sensory` — systems that
-pulse, flash or flicker read it and soften (Pip's glow already does).
-Listen to the `changed` signal for live updates; the settings menu UI
-arrives later.
+built, never retrofitted). Listen to the `changed` signal for live updates;
+the settings menu UI arrives later.
+
+| Flag | Default | Who reads it |
+|---|---|---|
+| `reduced_sensory` | `false` | Systems that pulse, flash or flicker soften (Pip's glow already does) |
+| `text_scale` | `1.0` (0.75–2.0) | Every font size = a base size × this (interaction prompts already do) |
 
 ## AssetRegistry
 

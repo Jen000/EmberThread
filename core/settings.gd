@@ -13,3 +13,11 @@ var reduced_sensory := false:
 	set(value):
 		reduced_sensory = value
 		changed.emit()
+
+## Text size multiplier: every piece of text in the game derives its font
+## size from a base size times this, so one slider scales the lot (interaction
+## prompts already do; dialogue and the journal follow as they are built).
+var text_scale := 1.0:
+	set(value):
+		text_scale = clampf(value, 0.75, 2.0)
+		changed.emit()
