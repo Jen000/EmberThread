@@ -1,5 +1,11 @@
 # Interaction triggers
 
+> **In progress:** the floating `[E] Read` prompt described below is being
+> replaced by an outline highlight plus a dialogue box at the bottom of the
+> screen. See `docs/build-plan-highlight-dialogue.md`. The trigger and sensor
+> halves don't change — only what they *display*. Sections marked ⚠ below go
+> away in step 1 of that plan.
+
 Talking to an NPC, reading a sign, shaking a tree, opening a door, starting a
 mend — from the code's point of view these are all the same three questions:
 
@@ -57,7 +63,7 @@ forget.
 
 | Property | Default | Meaning |
 |---|---|---|
-| `prompt_verb` | `"Look"` | Verb shown in the prompt. The key name is filled in from the current binding — never type "E" yourself |
+| `prompt_verb` | `"Look"` | ⚠ Verb shown in the prompt (the label goes; the property stays as data for the new UI). The key name is filled in from the current binding — never type "E" yourself |
 | `radius` | `16.0` | Reach in pixels. Ignored if you add your own `CollisionShape2D` child |
 | `active` | `true` | Dormant = no prompt, no signal. Story gating and "already done" both use this |
 | `prompt_offset` | `(0, -20)` | Where the prompt floats, relative to the node's origin |
@@ -73,7 +79,7 @@ interactable.show_message("It's locked.", 2.0) # floating text, see below
 Interactable.input_hint()                      # "E" — whatever is bound now
 ```
 
-`show_message()` is deliberately humble: one line of floating text for casual
+⚠ `show_message()` is deliberately humble: one line of floating text for casual
 background chatter and small acknowledgements. It is **not** the dialogue
 system — that's build step 6 (portrait, text box, paused world), and when it
 arrives it will listen to `interacted` in exactly the same way. Nothing about
