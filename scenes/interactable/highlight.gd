@@ -102,7 +102,18 @@ func _ready() -> void:
 			_shader_targets.append(node)
 
 	# TODO 2 goes here — see below.
+func _build_materials() -> void:
+	for node in _shader_targets:
+		var mat := ShaderMaterial.new()
+		mat.shader = OUTLINE_SHADER
+		mat.set_shader_parameter("outline_color", outline_color)
+		mat.set_shader_parameter("thickness", thickness)
+		mat.set_shader_parameter("strength", 0.0)     #<- starts invisible
+		node.material = mat
+
 	# TODO 3 goes here — see below.
+var _base_modulate: Dictionary = {}      (declare it up with the others)
+_base_modulate[node] = node.modulate
 
 
 ## The nodes this highlight affects: the target_path node if one was set,
@@ -179,11 +190,19 @@ func _find_visuals() -> Array[CanvasItem]:
 ## Show or hide the highlight. Called by whatever decided this object matters
 ## right now — for interaction that's Interactable.focus_changed.
 func set_shown(value: bool) -> void:
+	var _tween: Tween
+
 	if value == _shown:
 		return
 	_shown = value
 
 	# TODO 4 and TODO 5 go here — see below.
+
+var tween := create_tween()
+tween.set_parallel(true)
+tween.tween_property(mat, "shader_parameter/strength", _shown, fade_time)
+if _tween != null and _tween.is_running():
+    _tween.kill()
 
 
 # =============================================================================

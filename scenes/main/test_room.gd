@@ -25,12 +25,11 @@ func _ready() -> void:
 	# Nothing about signs, trees or NPCs lives inside the component.
 	_signpost.interacted.connect(_on_signpost_read)
 
-
 func _on_signpost_read(_interactor: Node2D) -> void:
 	# Floating text stands in for the dialogue system (build step 6). When
 	# that lands, this line becomes a call into it — the trigger doesn't change.
-	_signpost.show_message("Harbour, down the hill.\nMind the fog.", 3.0)
-
+	# _signpost.show_message("Harbour, down the hill.\nMind the fog.", 3.0)
+	return
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not OS.is_debug_build():
