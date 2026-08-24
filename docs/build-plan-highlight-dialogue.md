@@ -114,15 +114,95 @@ that instead.
 
 ## Step 4 — Connect highlight to focus
 
-**Goal:** it follows you around.
+**Goal:** the highlight follows the player instead of needing the debug key.
 
-`Interactable` already emits `focus_changed(bool)` and the sensor already
-drives it — this is two lines in `Interactable._ready()`: find a `Highlight`
-child, connect `focus_changed` to its `set_shown`.
+### What a signal is
 
-**Check:** walk the room. Outline on approach, off when you leave, off when
-you turn your back. Walk past several objects in a row — if it flickers,
-raise `fade_time`.
+A signal is an announcement a node makes. It doesn't know or care who's
+listening — it just says "this happened" and carries on. Other nodes
+*connect* to it, and when it fires, their function runs.
+
+That's how the pieces stay independent. `Interactable` announces "I'm the
+thing you'd press now"; it has no idea a `Highlight` exists. `Highlight`
+knows how to draw an outline and nothing about interaction. Step 4 is the one
+line that introduces them.
+
+### What already works
+
+Everything except the introduction:
+
+```
+you walk near the signpost
+  └─ InteractionSensor._physics_process picks it as the best target
+      └─ calls signpost.set_focused(true)
+          └─ Interactable emits  focus_changed(true)
+              └─ ...nothing is listening.        ← step 4 is here
+```
+
+`Highlight.set_shown(value: bool)` is already the right shape to receive it:
+`focus_changed` carries one `bool`, `set_shown` takes one `bool`. They match,
+so they can be wired straight together with no glue in between.
+
+### What to write
+
+In **`scenes/interactable/interactable.gd`**, at the end of `_ready()`: look
+through your own children for a `Highlight`, and if there is one, connect the
+signal to its `set_shown`.
+
+The connect syntax is `<signal>.connect(<function>)`:
+
+```gdscript
+focus_changed.connect(some_highlight.set_shown)
+```
+
+**`set_shown` with no brackets after it.** That's the whole trick, and it's
+the thing everyone gets wrong the first time. With brackets you'd be *calling*
+the function right now and handing the signal its return value. Without them,
+you're handing over the function itself, to be called later. Godot calls that
+a `Callable`.
+
+To find the child, loop `get_children()` and test with `is Highlight`, the
+same way `_find_visuals()` does in `highlight.gd`. Don't look it up by the
+name "Highlight" — then renaming the node in the editor silently breaks it.
+
+Guard for there being no `Highlight` at all. Most interactables won't have
+one, and `focus_changed` firing with nothing listening is perfectly fine.
+
+### The ordering question, since it usually comes up here
+
+`Highlight._ready()` runs **before** `Interactable._ready()` — children are
+always ready before their parent. That's exactly what you want: by the time
+`Interactable` goes looking, the `Highlight` has already built its materials
+and remembered the block colours. It's ready to be called.
+
+### Isn't this Interactable "knowing about" something?
+
+Slightly, and it's worth being clear about where the line is. The rule this
+project follows is that `Interactable` must not know **what happens when you
+press it** — that's what keeps signs, trees and NPCs sharing one component.
+Showing that it's *focusable* is a different thing: `focus_changed` exists for
+no other reason. Wiring an optional presentation child is fair game.
+
+If it ever stops feeling that way — say three different things want to react
+to focus — move the wiring out to whoever owns the scene, exactly like
+`test_room.gd` does with `interacted`.
+
+### Check
+
+1. Walk up to the signpost. Both blocks brighten. Walk away — they go back.
+2. Turn your back while standing next to it. Highlight goes out. That's
+   `behind_cutoff` in the sensor, and it's the clearest proof the whole chain
+   is live rather than just proximity.
+3. Walk to the lantern. It gets the outline instead of the tint.
+4. Walk the line between them without stopping. Only one should be lit at a
+   time. If they flicker as you pass, raise `fade_time` on the Highlight.
+
+### Then clean up
+
+Delete `_toggle_highlights()` and the `KEY_5` branch from
+`scenes/main/test_room.gd`, and take key 5 out of the header comment. It was
+scaffolding for step 3, and leaving dead debug paths around is how a test room
+turns into a haunted house.
 
 ---
 
