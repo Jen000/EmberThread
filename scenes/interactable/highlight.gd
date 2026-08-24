@@ -103,9 +103,9 @@ func _ready() -> void:
 			_polygon_targets.append(node)
 		else:
 			_shader_targets.append(node)
-	_build_materials()   
+	_build_materials()
 
-	# TODO 2 goes here — see below.
+
 func _build_materials() -> void:
 	for node in _shader_targets:
 		var mat := ShaderMaterial.new()
@@ -115,8 +115,11 @@ func _build_materials() -> void:
 		mat.set_shader_parameter("strength", 0.0)     #<- starts invisible
 		node.material = mat
 
-	# TODO 3 goes here — see below.
-	_base_modulate[node] = node.modulate
+	# TODO 3 — remember the blocks' starting colour so it can be put back.
+	# Its own loop: `node` from the loop above doesn't exist down here, and
+	# these are the polygons, not the sprites.
+	for node in _polygon_targets:
+		_base_modulate[node] = node.modulate
 
 
 ## The nodes this highlight affects: the target_path node if one was set,
@@ -198,9 +201,7 @@ func set_shown(value: bool) -> void:
 		return
 	_shown = value
 
-	# TODO 4 and TODO 5 go here — see below.
-
-	tween.tween_property(mat, "shader_parameter/strength", 1.0 _shown else 0.0, fade_time)
+	# Stop whatever fade was already running, or the two fight each other.
 	if _tween != null and _tween.is_running():
 		_tween.kill()
 

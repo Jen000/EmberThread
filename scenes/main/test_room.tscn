@@ -1,8 +1,9 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/test_room.gd" id="1_room"]
 [ext_resource type="Script" path="res://scenes/sensable/sensable.gd" id="2_sensable"]
 [ext_resource type="Script" path="res://scenes/interactable/interactable.gd" id="3_interactable"]
+[ext_resource type="Script" path="res://scenes/interactable/highlight.gd" id="4_highlight"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wallh"]
 size = Vector2(720, 16)
@@ -103,6 +104,9 @@ polygon = PackedVector2Array(-2, 0, 2, 0, 2, -14, -2, -14)
 color = Color(0.607843, 0.454902, 0.270588, 1)
 polygon = PackedVector2Array(-9, -14, 9, -14, 9, -22, -9, -22)
 
+[node name="Highlight" type="Node" parent="Signpost"]
+script = ExtResource("4_highlight")
+
 [node name="Solid" type="StaticBody2D" parent="Signpost"]
 
 [node name="Shape" type="CollisionShape2D" parent="Signpost/Solid"]
@@ -117,3 +121,15 @@ sense_radius = 120.0
 [node name="Visual" type="Polygon2D" parent="HiddenTrinket"]
 color = Color(0.85, 0.76, 0.45, 0.55)
 polygon = PackedVector2Array(0, -5, 5, 0, 0, 5, -5, 0)
+
+[node name="Lantern" type="Area2D" parent="."]
+position = Vector2(430, 250)
+script = ExtResource("3_interactable")
+prompt_verb = "Mend"
+
+[node name="Sprite2D" type="Sprite2D" parent="Lantern"]
+texture_filter = 1
+position = Vector2(0, -8)
+
+[node name="Highlight" type="Node" parent="Lantern"]
+script = ExtResource("4_highlight")

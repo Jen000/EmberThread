@@ -6,6 +6,7 @@ extends Node2D
 ##
 ##   1  calm follow          2  distressed
 ##   3  cycle emotion        4  shimmer preview (final-moment glow)
+##   5  toggle every highlight in the room
 ##   9  toggle reduced sensory mode
 ##   0  reset (calm follow + golden)
 ##
@@ -13,10 +14,17 @@ extends Node2D
 ## region-1 sensing arc: notice (glow pulse, green) -> lead -> hover.
 ##
 ## The Signpost is the worked example for interaction triggers
-## (scenes/interactable/README.md): walk up to it, a "[E] Read" prompt
-## appears, pressing it runs the response below.
+## (scenes/interactable/README.md): walk up to it and press E.
+##
+## Signpost and Lantern each carry a Highlight, and they exercise its two
+## different paths — see docs/build-plan-highlight-dialogue.md step 3:
+##   Signpost  Polygon2D blocks -> the `modulate` brightening fallback
+##   Lantern   a real texture   -> the outline shader
+## Key 5 toggles them by hand. Once step 4 wires Highlight to
+## Interactable.focus_changed, they'll follow the player instead.
 
 @onready var _signpost: Interactable = $Signpost
+@onready var _lantern_sprite: Sprite2D = $Lantern/Sprite2D
 
 
 func _ready() -> void:
@@ -24,6 +32,11 @@ func _ready() -> void:
 	# pressed, and the scene that owns the object decides what that means.
 	# Nothing about signs, trees or NPCs lives inside the component.
 	_signpost.interacted.connect(_on_signpost_read)
+
+	# Texture resolved by logical key, never by path — art-pipeline.md §4.
+	# Real lantern art overwriting the block stand-in appears here with no
+	# code change.
+	_lantern_sprite.texture = AssetRegistry.get_sprite("object_lantern_broken")
 
 func _on_signpost_read(_interactor: Node2D) -> void:
 	# Floating text stands in for the dialogue system (build step 6). When
@@ -37,6 +50,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
+
+	# Handled before the Pip lookup below, so it still works with no Pip.
+	if key.physical_keycode == KEY_5:
+		_toggle_highlights()
+		return
+
 	var pip: Pip = get_tree().get_first_node_in_group("pip")
 	if pip == null:
 		return
@@ -55,3 +74,17 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_0:
 			pip.set_move_state(Pip.MoveState.FOLLOW)
 			pip.set_emotion(Pip.Emotion.GOLDEN)
+
+
+## Flips every Highlight in the room on or off together, so step 3 can be
+## seen working before step 4 wires them to the interaction sensor. Delete
+## this once walking near an object does it for you.
+func _toggle_highlights() -> void:
+	var highlights := find_children("*", "Highlight", true, false)
+	if highlights.is_empty():
+		return
+	# One target state read off the first, so they can't drift out of sync.
+	var shown := not (highlights[0] as Highlight).is_shown()
+	for node in highlights:
+		(node as Highlight).set_shown(shown)
+	print("highlights: ", "on" if shown else "off")
