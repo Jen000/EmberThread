@@ -89,6 +89,9 @@ var _shown := false
 ## set_shown() to two plain loops instead of a type check per node per frame.
 var _shader_targets: Array[CanvasItem] = []
 var _polygon_targets: Array[Polygon2D] = []
+var _tween: Tween
+var _base_modulate: Dictionary = {}
+
 
 
 # =============================================================================
@@ -100,6 +103,7 @@ func _ready() -> void:
 			_polygon_targets.append(node)
 		else:
 			_shader_targets.append(node)
+	_build_materials()   
 
 	# TODO 2 goes here — see below.
 func _build_materials() -> void:
@@ -112,8 +116,7 @@ func _build_materials() -> void:
 		node.material = mat
 
 	# TODO 3 goes here — see below.
-var _base_modulate: Dictionary = {}      (declare it up with the others)
-_base_modulate[node] = node.modulate
+	_base_modulate[node] = node.modulate
 
 
 ## The nodes this highlight affects: the target_path node if one was set,
@@ -190,7 +193,6 @@ func _find_visuals() -> Array[CanvasItem]:
 ## Show or hide the highlight. Called by whatever decided this object matters
 ## right now — for interaction that's Interactable.focus_changed.
 func set_shown(value: bool) -> void:
-	var _tween: Tween
 
 	if value == _shown:
 		return
@@ -198,11 +200,23 @@ func set_shown(value: bool) -> void:
 
 	# TODO 4 and TODO 5 go here — see below.
 
-var tween := create_tween()
-tween.set_parallel(true)
-tween.tween_property(mat, "shader_parameter/strength", _shown, fade_time)
-if _tween != null and _tween.is_running():
-    _tween.kill()
+	tween.tween_property(mat, "shader_parameter/strength", 1.0 _shown else 0.0, fade_time)
+	if _tween != null and _tween.is_running():
+		_tween.kill()
+
+	_tween = create_tween()
+	_tween.set_parallel(true)
+
+	var strength := 1.0 if _shown else 0.0
+	for node in _shader_targets:
+		var mat := node.material as ShaderMaterial
+		if mat != null:
+			_tween.tween_property(mat, "shader_parameter/strength", strength, fade_time)
+
+	for node in _polygon_targets:
+		var base: Color = _base_modulate[node]
+		var target := base * PLACEHOLDER_BRIGHTNESS if _shown else base
+		_tween.tween_property(node, "modulate", target, fade_time)
 
 
 # =============================================================================
