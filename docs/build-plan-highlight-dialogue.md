@@ -86,21 +86,29 @@ Leave E, Space and the pad button. Clicks get handled per-object in step 5.
 
 **Goal:** objects outline when focused.
 
-Stub: `scenes/interactable/highlight.gd`, six TODOs, read its header first —
-the two-paths explanation is the part that matters.
+Stub: `scenes/interactable/highlight.gd`. Read its header first — there's a
+Godot vocabulary section, then the two-paths explanation, then six TODOs.
+TODO 1 is filled in as a worked example; 2–6 are yours, each with the exact
+API calls and how to check it.
 
 Shader: `shaders/outline.gdshader`, written and tested, no edits needed.
-Its uniforms are `outline_color`, `thickness`, `alpha_threshold`, `softness`,
+Its uniforms are `outline_color`, `thickness`, `alpha_threshold` and
 `strength`. You drive `strength` (0→1) and leave the rest at defaults.
+
+**Adding the node** (editor, not code): right-click `Signpost` in the Scene
+dock → Add Child Node → search "Node" → plain `Node` → rename it `Highlight`
+→ with it selected, drag `highlight.gd` from the FileSystem dock onto the
+Inspector's Script property.
 
 Watch for: each node needs its **own** `ShaderMaterial` instance. Share one
 and every object in the room lights up together.
 
 **Check:** temporarily call `set_shown(true)` in `_ready()` on the signpost's
-highlight. The block should brighten (Polygon2D fallback path — the shader
-does nothing on an untextured polygon, which is expected). To see the real
-shader path, drop any PNG from `assets/sprites/` onto a `Sprite2D` in the test
-room and highlight that instead.
+highlight. Both the post and the board should brighten together — the
+Polygon2D fallback path, because the shader does nothing on an untextured
+polygon. To see the real shader path, add a `Sprite2D` to the test room, set
+its Texture to any PNG under `assets/sprites/`, and put a `Highlight` under
+that instead.
 
 ---
 
@@ -152,12 +160,13 @@ close — outline stays (you're still in range).
 
 **Goal:** a box exists and can be shown by hand.
 
-Stub: `scenes/ui/dialogue_box.gd` — its header has the node structure to
-build in the editor and the twelve TODOs.
+Stub: `scenes/ui/dialogue_box.gd` — its header walks the scene build node by
+node, with the anchor presets and inspector settings spelled out, then the
+twelve TODOs.
 
 Build `scenes/ui/dialogue_box.tscn` to that structure, then register it as an
-autoload named `Dialogue` (Project Settings → Autoload → point at the
-**scene**, not the script — a CanvasLayer autoload is a scene autoload).
+autoload named `Dialogue` (Project Settings → Globals → Autoload → point at
+the **scene**, not the script — a CanvasLayer autoload is a scene autoload).
 
 Set `process_mode = When Paused` on the root **in the scene**, not in code.
 Miss it and the box pauses itself along with the world, and the game hangs
