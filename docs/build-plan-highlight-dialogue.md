@@ -208,31 +208,145 @@ turns into a haunted house.
 
 ## Step 5 — Mouse hover and click
 
-**Goal:** the mouse does what the keyboard does, within reach.
+**Goal:** the mouse does what the keyboard does.
 
-`Interactable` is an `Area2D`, so it gets mouse events for free once
-`input_pickable = true`. In `_ready()`, set that and connect three signals:
+This is the fiddliest step in the batch. Read the whole thing before writing
+any of it — there's a decision in the middle that changes what you build.
+
+### Decide first: what does an outline promise?
+
+An earlier draft of this plan said hover should highlight an object *at any
+distance*. I've changed my mind, and you should make the call knowingly:
+
+- **Outline = "you can do this right now."** Hovering something across the
+  room does nothing. One meaning, never a lie. **My recommendation.**
+- **Outline = "this is an interactable thing."** Hover lights it up from
+  anywhere, but clicking only works up close.
+
+The second option teaches the player that a lit object is sometimes actionable
+and sometimes not, and the only way to tell is to try. That's a small
+frustration repeated hundreds of times, which is the opposite of cozy. It's
+also worse for anyone relying on the visual cue rather than a sense of
+distance.
+
+Everything below assumes the first. If you pick the second, drop the reach
+check from the hover path only — the click path keeps it either way.
+
+### The Godot part
+
+`Interactable` is an `Area2D`, and an `Area2D` can receive mouse events
+directly once you turn them on. In `_ready()`:
 
 ```gdscript
-mouse_entered  -> highlight on   (hover, even before you're in range)
-mouse_exited   -> highlight off  (unless the sensor still has focus — careful)
-input_event    -> on a left-click press, call interact() IF in range
+input_pickable = true
 ```
 
-"IF in range" is the fiddly bit. The object shouldn't decide; ask the player's
-sensor whether it currently has this object in reach. Simplest honest version:
-`get_tree().get_first_node_in_group("player")` → its sensor → is this in
-`get_overlapping_areas()`. The Player isn't in a group yet — add it to
-`&"player"` in `player.gd:_ready()` the way Pip does with `&"pip"`.
+That gives you three signals to connect, same `.connect()` syntax as step 4:
 
-The hover/focus interaction is where you'll trip: two independent sources now
-want the highlight on. Track them separately (`_hovered`, `_focused`) and show
-the outline when *either* is true, rather than letting the second one to
-change state turn it off.
+| Signal | Fires when | Note |
+|---|---|---|
+| `mouse_entered` | cursor moves onto its collision shape | no arguments |
+| `mouse_exited` | cursor moves off | no arguments |
+| `input_event` | any input over it | see below |
 
-**Check:** hover a far object — outlines, click does nothing. Walk close —
-click opens it. Keyboard still works. Move the mouse away while standing
-close — outline stays (you're still in range).
+`input_event` hands you three things —
+`(viewport: Node, event: InputEvent, shape_idx: int)` — and it fires for
+**mouse motion too**, not just clicks. So the first thing your handler does is
+filter:
+
+```gdscript
+if event is InputEventMouseButton \
+        and event.button_index == MOUSE_BUTTON_LEFT \
+        and event.pressed:
+```
+
+Without that filter you'll fire the interaction on every pixel of cursor
+movement across the object.
+
+### Answering "is the player close enough?"
+
+The object shouldn't work this out — the player's sensor already knows. Give
+`InteractionSensor` a small public method (in
+`scenes/interactable/interaction_sensor.gd`):
+
+```gdscript
+## True while this interactable is within the player's reach.
+func is_in_reach(interactable: Interactable) -> bool:
+	return interactable in get_overlapping_areas()
+```
+
+Three lines, and it means `Interactable` never has to know how reach is
+measured. If reach later becomes a cone, or ignores things behind walls, one
+function changes and nothing else does.
+
+To find the sensor, `Interactable` needs to find the player. Nothing is in a
+`player` group yet — add one line to `player.gd`'s `_ready()`:
+
+```gdscript
+add_to_group(&"player")
+```
+
+exactly like `Sensable` does with `pip_sensable`. Then
+`get_tree().get_first_node_in_group("player")` finds it from anywhere.
+
+### The bit that will actually trip you
+
+**Two independent things now want the highlight on:** walking near it, and
+pointing at it. They can turn on and off in any order. The classic bug is
+hover-off switching the outline off while the player is still standing right
+next to the object.
+
+Do not try to fix that with cleverness in the handlers. Track the two reasons
+separately and derive the answer:
+
+```gdscript
+var _focused := false      # the sensor picked me
+var _hovered := false      # the cursor is on me
+
+func _refresh_highlight() -> void:
+	if _highlight != null:
+		_highlight.set_shown(_focused or _hovered)
+```
+
+Each handler sets its own flag and calls `_refresh_highlight()`. Neither one
+ever calls `set_shown` directly. Add a third reason later — a quest marker,
+Pip pointing at something — and it's one more flag in the same `or`.
+
+**This changes what you wrote in step 4.** There, `focus_changed` connected
+straight to `highlight.set_shown`. Now that there are two sources, that
+connection has to go: keep the loop that finds the `Highlight` child, but
+store it in a `_highlight` variable instead of connecting it, and have
+`set_focused()` set `_focused` and call `_refresh_highlight()`.
+
+That isn't wasted work — step 4 was the simplest thing that worked, and it
+worked. This is what adding a second reason costs, and it's the normal shape
+of that change.
+
+### Two more traps
+
+**Hover fires through the dialogue box unless you stop it.** Once step 6
+exists, a `Control` sitting over the world will block mouse events only if its
+`mouse_filter` is `Stop`. The stub sets `Root` to `Ignore` deliberately so the
+world stays clickable — but the `Frame` itself should stop clicks, or players
+will interact with objects *through* the text box.
+
+**Keyboard and mouse must not double-fire.** The sensor's `_unhandled_input`
+handles `interact`; `input_event` handles clicks. They're separate paths, so a
+click can't trigger both — provided you removed the mouse button from the
+`interact` action back in step 2. If you skipped that, a click fires the
+focused object *and* the clicked object.
+
+### Check
+
+1. Hover an object across the room — nothing (with my recommendation).
+2. Walk close, hover it — outline on. Move the cursor off while standing
+   still — outline **stays**, because you're still in range.
+3. Walk away with the cursor still on it — outline off.
+4. Click it while in range — it fires. Click it from across the room —
+   nothing.
+5. E still works, and one click never fires two interactions.
+
+Test 2 is the one that catches the bug this step is really about.
 
 ---
 
@@ -267,17 +381,84 @@ It won't advance yet.
 
 **Goal:** it behaves like a dialogue box.
 
-TODOs 6–12 in the stub. Typewriter reveal via the `RichTextLabel`'s
-`visible_ratio`, advance on `interact` / left-click, close after the last
-line, unpause, emit `finished`.
+The API detail is in TODOs 6–12 in `scenes/ui/dialogue_box.gd`. What follows
+is the shape those TODOs add up to, which is easier to hold in your head than
+twelve numbered instructions.
 
-TODO 12 describes the one bug you will definitely hit (the opening press also
-advancing the first line) and how to kill it. Read it *before* you write the
-input handler; it's much more annoying to diagnose than to prevent.
+### The box is only ever in one of two states
 
-**Check:** three lines, advance through all three with E, then with clicks.
-The player can't walk while it's open. Mashing the key doesn't skip a line —
-it completes the reveal, then advances.
+```
+        say()                    reveal finishes
+  closed ────> REVEALING ──────────────────────> WAITING
+                  │  press: finish this line now      │
+                  └──────────<───────────────────────-┘
+                                                      │ press: next line
+                                            ┌─────────┴─────────┐
+                                      more lines?           that was the last
+                                            │                   │
+                                       REVEALING             _close()
+```
+
+Every bug in a dialogue box is a state confusion: input arriving in the wrong
+state, or a state you forgot to leave. If you keep asking "which of the two am
+I in, and what does a press mean here?", the whole thing stays simple.
+
+### The typewriter is one property
+
+`RichTextLabel` has `visible_ratio` — a number from 0 to 1 for how much of the
+text is drawn. You don't touch the string at all: set the full text, set
+`visible_ratio = 0.0`, and tween it to 1.0. Same `tween_property` you used in
+the highlight, so this is familiar ground.
+
+Duration comes from the line's length divided by `reveal_speed`, not a fixed
+number. That's what keeps a long line from crawling and a two-word line from
+flashing past — the *speed* stays constant and the duration varies.
+
+### The rule that makes it feel good
+
+**A press during REVEALING completes the line. It does not skip it.**
+
+Someone pressing the key mid-reveal wants the rest of the sentence *now* —
+they haven't read it yet. Skipping to the next line loses text they never saw,
+and they can't go back. Getting this backwards is the most irritating bug in
+game dialogue, and it's four lines to get right: kill the tween, set
+`visible_ratio = 1.0`, show the continue arrow, return.
+
+### The bug you will hit
+
+The press that *opens* the box also advances its first line, so short lines
+appear to be skipped entirely. It happens because the box begins existing
+part-way through a press and then sees that same press.
+
+Record `Engine.get_process_frames()` in `say()`, and in the input handler
+ignore anything arriving on that same frame. TODO 12 has it written out. Read
+it **before** you write the handler — it's far more annoying to diagnose than
+to prevent, because it only shows on short lines and looks like a text bug.
+
+### Pause is already handled, if you did step 6 right
+
+`get_tree().paused = true` in `say()` stops the player, Pip and the sensor.
+The box keeps running only because its root has `process_mode = When Paused`.
+If the game freezes with a dead box on screen, that setting is the first thing
+to check — it's not a crash.
+
+Unpause in `_close()` **before** emitting `finished`, or anything listening
+(a memory cutscene, later) starts up into a still-paused tree.
+
+### Check
+
+1. Three lines. Advance all three with E, then again with clicks.
+2. The player can't walk while it's open, and Pip stops drifting.
+3. Press mid-reveal: the line **completes**. Press again: it advances.
+4. Give it a one-word line. It must not vanish instantly — that's the
+   frame-guard bug, and a short line is the only place it shows.
+5. After the last line the world moves again. Walk around to be sure.
+
+### Done looks like
+
+`Dialogue.say("", ["one", "two"])` from anywhere in the game opens a box,
+reads properly, closes cleanly, and leaves the world running. Nothing else in
+the project needed to know it exists.
 
 ---
 
