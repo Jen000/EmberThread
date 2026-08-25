@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://c6vovi68jb8cy"]
 
-[ext_resource type="Texture2D" uid="uid://dg6vpqy7kn7n7" path="res://tilesets/grassanddirtwang.png" id="1_xgqf3"]
+[ext_resource type="Texture2D" path="res://assets/tilesets/coastal/grassanddirtwang.png" id="1_xgqf3"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_5v7jk"]
 [ext_resource type="PackedScene" path="res://scenes/pip/pip.tscn" id="3_g4rcw"]
 [ext_resource type="Script" uid="uid://dbt0s3i8ww6pi" path="res://scenes/sensable/sensable.gd" id="4_yvaxn"]

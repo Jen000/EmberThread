@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scenes/sensable/sensable.gd" id="2_sensable"]
 [ext_resource type="Script" path="res://scenes/interactable/interactable.gd" id="3_interactable"]
 [ext_resource type="Script" path="res://scenes/interactable/highlight.gd" id="4_highlight"]
-[ext_resource type="Texture2D" uid="uid://dg6vpqy7kn7n7" path="res://tilesets/grassanddirtwang.png" id="1_xgqf3"]
+[ext_resource type="Texture2D" path="res://assets/tilesets/coastal/grassanddirtwang.png" id="1_xgqf3"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5v7jk"]
 texture = ExtResource("1_xgqf3")

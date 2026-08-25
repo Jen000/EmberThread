@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bno16t6qqrgms"
-path="res://.godot/imported/sand and sea.png-ee65e17ac57c2de6451d8aec95bea6cf.ctex"
+uid="uid://cxvle4hp860jj"
+path="res://.godot/imported/sand_and_grass.png-ea149e7d94365886de8012c88533ba95.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://tilesets/sand and sea.png"
-dest_files=["res://.godot/imported/sand and sea.png-ee65e17ac57c2de6451d8aec95bea6cf.ctex"]
+source_file="res://assets/tilesets/coastal/sand_and_grass.png"
+dest_files=["res://.godot/imported/sand_and_grass.png-ea149e7d94365886de8012c88533ba95.ctex"]
 
 [params]
 

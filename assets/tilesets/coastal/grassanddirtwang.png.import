@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bvde2shbudxph"
-path="res://.godot/imported/dirt_and_grass.png-44aaa14ba92ca3d18406eb5a9bfccc5a.ctex"
+uid="uid://w14a1eadmyuk"
+path="res://.godot/imported/grassanddirtwang.png-78cbbe6fa8c7783e7d853107229c9d33.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://tilesets/dirt_and_grass.png"
-dest_files=["res://.godot/imported/dirt_and_grass.png-44aaa14ba92ca3d18406eb5a9bfccc5a.ctex"]
+source_file="res://assets/tilesets/coastal/grassanddirtwang.png"
+dest_files=["res://.godot/imported/grassanddirtwang.png-78cbbe6fa8c7783e7d853107229c9d33.ctex"]
 
 [params]
 
