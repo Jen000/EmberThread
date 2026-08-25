@@ -65,6 +65,7 @@ var _active: Array[AnimatedSprite2D] = []
 func _ready() -> void:
 	_setup_visual()
 	_play_all("idle")
+	add_to_group(&"player")
 
 
 ## Modular layers are the real target and are always built. If whole-sprite

@@ -51,10 +51,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if key == null or not key.pressed or key.echo:
 		return
 
-	# Handled before the Pip lookup below, so it still works with no Pip.
-	if key.physical_keycode == KEY_5:
-		_toggle_highlights()
-		return
 
 	var pip: Pip = get_tree().get_first_node_in_group("pip")
 	if pip == null:
@@ -74,17 +70,3 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_0:
 			pip.set_move_state(Pip.MoveState.FOLLOW)
 			pip.set_emotion(Pip.Emotion.GOLDEN)
-
-
-## Flips every Highlight in the room on or off together, so step 3 can be
-## seen working before step 4 wires them to the interaction sensor. Delete
-## this once walking near an object does it for you.
-func _toggle_highlights() -> void:
-	var highlights := find_children("*", "Highlight", true, false)
-	if highlights.is_empty():
-		return
-	# One target state read off the first, so they can't drift out of sync.
-	var shown := not (highlights[0] as Highlight).is_shown()
-	for node in highlights:
-		(node as Highlight).set_shown(shown)
-	print("highlights: ", "on" if shown else "off")

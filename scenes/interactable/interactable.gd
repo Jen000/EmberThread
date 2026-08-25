@@ -55,6 +55,8 @@ const INTERACTABLE_LAYER := 1 << 2
 		active = value
 
 var _focused := false
+## True while the mouse cursor is over this. The sensor reads it.
+var hovered := false
 
 
 func _ready() -> void:
@@ -66,6 +68,31 @@ func _ready() -> void:
 	monitoring = false
 	monitorable = true
 	_ensure_shape()
+	# If this object has a Highlight child, let it react to focus.
+	for child in get_children():
+		if child is Highlight:
+			focus_changed.connect((child as Highlight).set_shown)
+			break
+	input_pickable = true
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
+	input_event.connect(_on_input_event)
+
+func _on_mouse_entered() -> void:
+	hovered = true
+
+func _on_mouse_exited() -> void:
+	hovered = false
+
+func _on_input_event(_viewport: Node, event: InputEvent, _shape: int) -> void:
+	if not (event is InputEventMouseButton
+			and event.button_index == MOUSE_BUTTON_LEFT
+			and event.pressed):
+		return
+	if not _focused:
+		return
+	get_viewport().set_input_as_handled()
+	interact(get_tree().get_first_node_in_group("player") as Node2D)
 
 
 ## Called by the sensor when [interact] is pressed. Anything else may call it
