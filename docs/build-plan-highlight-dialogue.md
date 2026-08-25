@@ -210,143 +210,129 @@ turns into a haunted house.
 
 **Goal:** the mouse does what the keyboard does.
 
-This is the fiddliest step in the batch. Read the whole thing before writing
-any of it — there's a decision in the middle that changes what you build.
+> **This step was rewritten.** An earlier version had `Interactable` track
+> hover and focus as two separate flags feeding one `or`, plus an
+> `is_in_reach()` helper on the sensor. It worked, but it made the object
+> decide when to light up — which is the sensor's job, and it meant undoing
+> part of step 4. The version below is smaller, leaves step 4 alone, and
+> puts the decision back where the rest of the targeting already lives.
 
-### Decide first: what does an outline promise?
+### The idea
 
-An earlier draft of this plan said hover should highlight an object *at any
-distance*. I've changed my mind, and you should make the call knowingly:
+Don't treat the mouse as a second way to light things up. Treat it as a second
+way to **steer the thing the sensor already picks.**
 
-- **Outline = "you can do this right now."** Hovering something across the
-  room does nothing. One meaning, never a lie. **My recommendation.**
-- **Outline = "this is an interactable thing."** Hover lights it up from
-  anywhere, but clicking only works up close.
+The sensor's whole job is answering "of the objects in reach, which one do you
+mean?" Today it answers with distance and facing. Pointing at something is
+just a third — and much more direct — opinion about what you mean.
 
-The second option teaches the player that a lit object is sometimes actionable
-and sometimes not, and the only way to tell is to try. That's a small
-frustration repeated hundreds of times, which is the opposite of cozy. It's
-also worse for anyone relying on the visual cue rather than a sense of
-distance.
+So the object records only one new fact: *the cursor is on me*. The sensor
+reads that and lets it win. Everything downstream — highlight, the E key,
+everything you built in steps 3 and 4 — carries on unchanged, because from
+its point of view nothing new happened. An object got focused. That's all.
 
-Everything below assumes the first. If you pick the second, drop the reach
-check from the hover path only — the click path keeps it either way.
+This also makes the outline honest for free: the sensor only ever considers
+objects in reach, so hovering something across the room can't light it up.
+No range check to write.
 
-### The Godot part
+### Three files, small edits in each
 
-`Interactable` is an `Area2D`, and an `Area2D` can receive mouse events
-directly once you turn them on. In `_ready()`:
-
-```gdscript
-input_pickable = true
-```
-
-That gives you three signals to connect, same `.connect()` syntax as step 4:
-
-| Signal | Fires when | Note |
-|---|---|---|
-| `mouse_entered` | cursor moves onto its collision shape | no arguments |
-| `mouse_exited` | cursor moves off | no arguments |
-| `input_event` | any input over it | see below |
-
-`input_event` hands you three things —
-`(viewport: Node, event: InputEvent, shape_idx: int)` — and it fires for
-**mouse motion too**, not just clicks. So the first thing your handler does is
-filter:
-
-```gdscript
-if event is InputEventMouseButton \
-        and event.button_index == MOUSE_BUTTON_LEFT \
-        and event.pressed:
-```
-
-Without that filter you'll fire the interaction on every pixel of cursor
-movement across the object.
-
-### Answering "is the player close enough?"
-
-The object shouldn't work this out — the player's sensor already knows. Give
-`InteractionSensor` a small public method (in
-`scenes/interactable/interaction_sensor.gd`):
-
-```gdscript
-## True while this interactable is within the player's reach.
-func is_in_reach(interactable: Interactable) -> bool:
-	return interactable in get_overlapping_areas()
-```
-
-Three lines, and it means `Interactable` never has to know how reach is
-measured. If reach later becomes a cone, or ignores things behind walls, one
-function changes and nothing else does.
-
-To find the sensor, `Interactable` needs to find the player. Nothing is in a
-`player` group yet — add one line to `player.gd`'s `_ready()`:
+**1. `scenes/player/player.gd`** — one line at the top of `_ready()`:
 
 ```gdscript
 add_to_group(&"player")
 ```
 
-exactly like `Sensable` does with `pip_sensable`. Then
-`get_tree().get_first_node_in_group("player")` finds it from anywhere.
+Same idea as `Sensable` joining `pip_sensable`. It's how the clicked object
+finds out who clicked it.
 
-### The bit that will actually trip you
+**2. `scenes/interactable/interactable.gd`** — the new fact, and the click.
 
-**Two independent things now want the highlight on:** walking near it, and
-pointing at it. They can turn on and off in any order. The classic bug is
-hover-off switching the outline off while the player is still standing right
-next to the object.
-
-Do not try to fix that with cleverness in the handlers. Track the two reasons
-separately and derive the answer:
+Up with the other variables (`var _focused := false`, line 57):
 
 ```gdscript
-var _focused := false      # the sensor picked me
-var _hovered := false      # the cursor is on me
-
-func _refresh_highlight() -> void:
-	if _highlight != null:
-		_highlight.set_shown(_focused or _hovered)
+## True while the mouse cursor is over this. The sensor reads it.
+var hovered := false
 ```
 
-Each handler sets its own flag and calls `_refresh_highlight()`. Neither one
-ever calls `set_shown` directly. Add a third reason later — a quest marker,
-Pip pointing at something — and it's one more flag in the same `or`.
+No underscore, because unlike `_focused` this one is deliberately public —
+the sensor needs to see it.
 
-**This changes what you wrote in step 4.** There, `focus_changed` connected
-straight to `highlight.set_shown`. Now that there are two sources, that
-connection has to go: keep the loop that finds the `Highlight` child, but
-store it in a `_highlight` variable instead of connecting it, and have
-`set_focused()` set `_focused` and call `_refresh_highlight()`.
+In `_ready()`, next to the other Area2D setup:
 
-That isn't wasted work — step 4 was the simplest thing that worked, and it
-worked. This is what adding a second reason costs, and it's the normal shape
-of that change.
+```gdscript
+	input_pickable = true
+```
 
-### Two more traps
+That's the switch that makes an `Area2D` receive mouse events at all. Then
+connect its three mouse signals, same `.connect()` you used in step 4:
 
-**Hover fires through the dialogue box unless you stop it.** Once step 6
-exists, a `Control` sitting over the world will block mouse events only if its
-`mouse_filter` is `Stop`. The stub sets `Root` to `Ignore` deliberately so the
-world stays clickable — but the `Frame` itself should stop clicks, or players
-will interact with objects *through* the text box.
+```gdscript
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
+	input_event.connect(_on_input_event)
+```
 
-**Keyboard and mouse must not double-fire.** The sensor's `_unhandled_input`
-handles `interact`; `input_event` handles clicks. They're separate paths, so a
-click can't trigger both — provided you removed the mouse button from the
-`interact` action back in step 2. If you skipped that, a click fires the
-focused object *and* the clicked object.
+And three small handlers. The first two are one-liners setting `hovered`.
+The third is the click:
+
+```gdscript
+func _on_input_event(_viewport: Node, event: InputEvent, _shape: int) -> void:
+	if not (event is InputEventMouseButton
+			and event.button_index == MOUSE_BUTTON_LEFT
+			and event.pressed):
+		return
+	if not _focused:
+		return
+	get_viewport().set_input_as_handled()
+	interact(get_tree().get_first_node_in_group("player") as Node2D)
+```
+
+Three things happening there, each worth understanding:
+
+- **The filter.** `input_event` fires on mouse *motion* too, and on button
+  releases. Without this you'd interact on every pixel the cursor crosses.
+- **`if not _focused: return`** is the entire reach check. If the object were
+  out of reach the sensor would never have focused it — and if you're
+  pointing at it and it's in reach, hovering already made it the focused one.
+  The work is already done.
+- **`set_input_as_handled()`** stops the click travelling on to anything else
+  listening.
+
+**3. `scenes/interactable/interaction_sensor.gd`** — two lines.
+
+In `_best_candidate()`, as the first thing inside the loop after the
+`candidate == null or not candidate.active` check:
+
+```gdscript
+		if candidate.hovered:
+			return candidate  # you are pointing at it; facing doesn't get a veto
+```
+
+Returning immediately is the point: a deliberate point of the cursor beats
+distance and beats facing. You can stand with your back to the signpost, put
+the cursor on it, and it's yours.
 
 ### Check
 
-1. Hover an object across the room — nothing (with my recommendation).
-2. Walk close, hover it — outline on. Move the cursor off while standing
-   still — outline **stays**, because you're still in range.
-3. Walk away with the cursor still on it — outline off.
-4. Click it while in range — it fires. Click it from across the room —
-   nothing.
-5. E still works, and one click never fires two interactions.
+1. Walk close, hover it — outline on. Move the cursor off — outline stays,
+   because you're still in range and facing it. That's the sensor's normal
+   answer taking over again.
+2. Stand next to it facing **away** — dark. Now hover it — it lights up.
+   That's the override, and it's the clearest proof the sensor is reading
+   `hovered`.
+3. Hover something across the room — nothing. Click it — nothing.
+4. Click it from up close — it fires, once.
+5. E still works everywhere it did before.
 
-Test 2 is the one that catches the bug this step is really about.
+Test 2 is the one that tells you this step is wired correctly.
+
+### What you did NOT have to do
+
+Worth noticing, because it's the argument for the design: no second highlight
+source, no `_refresh_highlight()`, no `is_in_reach()`, and not a single line
+of step 3 or step 4 changed. One new public flag, one early return in the
+sensor, and one click handler.
 
 ---
 
