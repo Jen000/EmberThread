@@ -9,10 +9,10 @@
 [node name="TestRoom" parent="." instance=ExtResource("1_room")]
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
-position = Vector2(360, 300)
+position = Vector2(110, 200)
 
 [node name="Pip" parent="." instance=ExtResource("3_pip")]
-position = Vector2(372, 286)
+position = Vector2(122, 186)
 follow_target_path = NodePath("../Player")
 
 [node name="UI" type="CanvasLayer" parent="."]

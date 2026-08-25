@@ -6,12 +6,17 @@ extends Node2D
 ##
 ##   1  calm follow          2  distressed
 ##   3  cycle emotion        4  shimmer preview (final-moment glow)
-##   5  toggle every highlight in the room
 ##   9  toggle reduced sensory mode
 ##   0  reset (calm follow + golden)
 ##
-## Walk near the faint trinket in the north-east corner to see the
-## region-1 sensing arc: notice (glow pulse, green) -> lead -> hover.
+## The ground is a hand-painted TileMapLayer (Jen's map-making experiment,
+## merged in from tilesets/testlevel.tscn). It spans 0,0 to 352,304; the
+## `Walls` StaticBody2D is an invisible ring at that edge so you can't walk
+## off into nothing while tile collision is still being sorted out. Paint
+## straight onto the TileMapLayer node here — it isn't an instanced scene.
+##
+## Walk near the faint trinket up near the top to see the region-1 sensing
+## arc: notice (glow pulse, green) -> lead -> hover.
 ##
 ## The Signpost is the worked example for interaction triggers
 ## (scenes/interactable/README.md): walk up to it and press E.
@@ -20,8 +25,8 @@ extends Node2D
 ## different paths — see docs/build-plan-highlight-dialogue.md step 3:
 ##   Signpost  Polygon2D blocks -> the `modulate` brightening fallback
 ##   Lantern   a real texture   -> the outline shader
-## Key 5 toggles them by hand. Once step 4 wires Highlight to
-## Interactable.focus_changed, they'll follow the player instead.
+## Both follow the player now that step 4 has wired Highlight to
+## Interactable.focus_changed.
 
 @onready var _signpost: Interactable = $Signpost
 @onready var _lantern_sprite: Sprite2D = $Lantern/Sprite2D
