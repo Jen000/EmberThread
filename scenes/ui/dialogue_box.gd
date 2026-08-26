@@ -115,6 +115,11 @@ var _reveal: Tween
 @onready var _color_rect: ColorRect = $Root/Frame/ColorRect
 
 
+func _ready() -> void:
+	_text.add_theme_font_size_override(&"normal_font_size", BASE_FONT_SIZE)
+	_root.visible = false
+
+
 ## Show a conversation. `speaker_id` is the AssetRegistry portrait key
 ## ("sable" -> npc_sable_portrait); pass "" for an unattributed line like a
 ## signpost, and hide the portrait.
