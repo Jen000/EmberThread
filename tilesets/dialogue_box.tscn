@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://1g73wfo5b26q"]
+
+[ext_resource type="Script" uid="uid://cehrfbfkj3g0m" path="res://dialogue_box.gd" id="1_icqhg"]
+
+[node name="DialogueBox" type="CanvasLayer" unique_id=358978243]
+process_mode = 2
+script = ExtResource("1_icqhg")
+
+[node name="Root" type="Control" parent="." unique_id=445414554]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Frame" type="NinePatchRect" parent="Root" unique_id=254081836]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 76.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Portrait" type="TextureRect" parent="Root/Frame" unique_id=1121892225]
+visible = false
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Text" type="RichTextLabel" parent="Root/Frame" unique_id=1334732351]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 2.0
+offset_right = 448.0
+offset_bottom = 58.0
+
+[node name="Continue" type="TextureRect" parent="Root/Frame" unique_id=1656618302]
+layout_mode = 0
+offset_left = 440.0
+offset_top = 2.0
+offset_right = 480.0
+offset_bottom = 42.0
+
+[node name="ColorRect" type="ColorRect" parent="Root/Frame" unique_id=1277620705]
+layout_mode = 0
+offset_top = 2.0
+offset_right = 480.0
+offset_bottom = 58.0

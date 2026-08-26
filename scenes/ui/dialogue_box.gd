@@ -97,6 +97,13 @@ const BASE_FONT_SIZE := 8
 ## one while this is true.
 var is_open := false
 
+var _opened_on_frame := -1
+
+var lines: PackedStringArray
+var _line_index := 0
+
+var _reveal: Tween
+
 # Node references. @onready means "assign this the moment the scene is ready",
 # which is the only safe time — $Root doesn't exist before then. The $ is
 # shorthand for get_node().
@@ -111,7 +118,37 @@ var is_open := false
 ## ("sable" -> npc_sable_portrait); pass "" for an unattributed line like a
 ## signpost, and hide the portrait.
 func say(speaker_id: String, lines: PackedStringArray) -> void:
-	pass
+
+	if lines.is_empty():
+		return
+	self.lines = lines
+	_line_index = 0
+
+	is_open = true
+	_root.visible = true
+	_opened_on_frame = Engine.get_process_frames()
+
+	get_tree().paused = true
+
+	var frame_texture := AssetRegistry.get_sprite("ui_dialogue_box")
+	var portrait := AssetRegistry.get_portrait(speaker_id)
+	if frame_texture != null:
+		_frame.texture = frame_texture
+	else:
+		_frame.texture = null
+		_frame.add_color_override("bg_color", Color(0, 0, 0, 0.5))
+
+	if portrait != null and speaker_id != "":
+		_portrait.texture = portrait
+		_portrait.visible = true
+	else:
+		_portrait.visible = false
+
+	_show_line(0)
+
+
+
+
 
 # =============================================================================
 # TODO 1 — guard and store.
@@ -156,7 +193,16 @@ func say(speaker_id: String, lines: PackedStringArray) -> void:
 
 ## Reveal one line, typewriter style.
 func _show_line(index: int) -> void:
-	pass
+	_text.text = lines[index]
+	_text.visible_ratio = 0.0
+	_reveal = create_tween()
+	_reveal.tween_property(_text, "visible_ratio", 1.0, lines[index].length() / reveal_speed)
+
+	_continue.visible = false
+	await _reveal.finished
+	_continue.visible = true
+
+	line_shown.emit(index)
 
 # =============================================================================
 # TODO 6 — the typewriter.
@@ -186,7 +232,17 @@ func _show_line(index: int) -> void:
 ## Advance: finish the current reveal if it's still running, otherwise move to
 ## the next line, or close if that was the last.
 func _advance() -> void:
-	pass
+	if _reveal != null and _reveal.is_running():
+		_reveal.kill()
+		_text.visible_ratio = 1.0
+		_continue.visible = true
+		return
+	else:
+		_line_index += 1
+		if _line_index < lines.size():
+			_show_line(_line_index)
+		else:
+			_close()
 
 # =============================================================================
 # TODO 9 — impatience should help, not punish.
@@ -206,7 +262,10 @@ func _advance() -> void:
 
 
 func _close() -> void:
-	pass
+	_root.visible = false
+	is_open = false
+	get_tree().paused = false
+	finished.emit()
 
 # =============================================================================
 # TODO 11 — unwind everything TODO 2 and 3 did, in reverse:
@@ -221,7 +280,16 @@ func _close() -> void:
 
 
 func _unhandled_input(_event: InputEvent) -> void:
-	pass
+	if is_open == false or _event == null:
+		return
+	if _event is InputEventKey and not _event.pressed or _event.echo:
+		return
+	if _event.is_action_pressed("interact") or (_event is InputEventMouseButton and _event.button_index == MOUSE_BUTTON_LEFT and _event.pressed):
+		_advance()
+		get_viewport().set_input_as_handled()  # don't let the world see this press
+
+	if Engine.get_process_frames() == _opened_on_frame:
+		return  # ignore input on the frame the box opened, see TODO 12
 
 # =============================================================================
 # TODO 12 — input, and the bug this whole TODO exists to prevent.

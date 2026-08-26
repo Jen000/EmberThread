@@ -97,10 +97,10 @@ func _best_candidate() -> Interactable:
 	var facing := _facing()
 	for area in get_overlapping_areas():
 		var candidate := area as Interactable
-		if candidate.hovered:
-			return candidate  # you are pointing at it; facing doesn't get a veto
 		if candidate == null or not candidate.active:
 			continue
+		if candidate.hovered:
+			return candidate  # you are pointing at it; facing doesn't get a veto
 		var to_target: Vector2 = candidate.global_position - global_position
 		var distance := to_target.length()
 		var alignment := 1.0
@@ -135,7 +135,3 @@ func _ensure_shape() -> void:
 	var shape := CollisionShape2D.new()
 	shape.shape = circle
 	add_child(shape)
-
-## True while this interactable is within the player's reach.
-func is_in_reach(interactable: Interactable) -> bool:
-	return interactable in get_overlapping_areas()
