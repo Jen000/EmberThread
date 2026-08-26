@@ -99,7 +99,7 @@ var is_open := false
 
 var _opened_on_frame := -1
 
-var lines: PackedStringArray
+var _lines: PackedStringArray
 var _line_index := 0
 
 var _reveal: Tween
@@ -112,16 +112,17 @@ var _reveal: Tween
 @onready var _portrait: TextureRect = $Root/Frame/Portrait
 @onready var _text: RichTextLabel = $Root/Frame/Text
 @onready var _continue: TextureRect = $Root/Frame/Continue
+@onready var _color_rect: ColorRect = $Root/Frame/ColorRect
 
 
 ## Show a conversation. `speaker_id` is the AssetRegistry portrait key
 ## ("sable" -> npc_sable_portrait); pass "" for an unattributed line like a
 ## signpost, and hide the portrait.
-func say(speaker_id: String, lines: PackedStringArray) -> void:
+func say(speaker_id: String, new_lines: PackedStringArray) -> void:
 
-	if lines.is_empty():
+	if new_lines.is_empty():
 		return
-	self.lines = lines
+	_lines = new_lines
 	_line_index = 0
 
 	is_open = true
@@ -135,8 +136,7 @@ func say(speaker_id: String, lines: PackedStringArray) -> void:
 	if frame_texture != null:
 		_frame.texture = frame_texture
 	else:
-		_frame.texture = null
-		_frame.add_color_override("bg_color", Color(0, 0, 0, 0.5))
+		_color_rect.visible = true  # temporary stand-in until the art arrives
 
 	if portrait != null and speaker_id != "":
 		_portrait.texture = portrait
@@ -193,15 +193,19 @@ func say(speaker_id: String, lines: PackedStringArray) -> void:
 
 ## Reveal one line, typewriter style.
 func _show_line(index: int) -> void:
-	_text.text = lines[index]
+	_text.text = _lines[index]
 	_text.visible_ratio = 0.0
-	_reveal = create_tween()
-	_reveal.tween_property(_text, "visible_ratio", 1.0, lines[index].length() / reveal_speed)
-
 	_continue.visible = false
-	await _reveal.finished
-	_continue.visible = true
+	_reveal = create_tween()
+	_reveal.tween_property(_text, "visible_ratio", 1.0, _lines[index].length() / reveal_speed)
+	_reveal.finished.connect(_finish_reveal.bind(index))
 
+
+## Everything that should be true once a line is fully on screen — whether it
+## got there by the tween completing or by the player pressing through it.
+func _finish_reveal(index: int) -> void:
+	_text.visible_ratio = 1.0
+	_continue.visible = true
 	line_shown.emit(index)
 
 # =============================================================================
@@ -234,12 +238,11 @@ func _show_line(index: int) -> void:
 func _advance() -> void:
 	if _reveal != null and _reveal.is_running():
 		_reveal.kill()
-		_text.visible_ratio = 1.0
-		_continue.visible = true
+		_finish_reveal(_line_index)
 		return
 	else:
 		_line_index += 1
-		if _line_index < lines.size():
+		if _line_index < _lines.size():
 			_show_line(_line_index)
 		else:
 			_close()
@@ -282,14 +285,12 @@ func _close() -> void:
 func _unhandled_input(_event: InputEvent) -> void:
 	if is_open == false or _event == null:
 		return
-	if _event is InputEventKey and not _event.pressed or _event.echo:
-		return
+	if Engine.get_process_frames() == _opened_on_frame:
+		return 
 	if _event.is_action_pressed("interact") or (_event is InputEventMouseButton and _event.button_index == MOUSE_BUTTON_LEFT and _event.pressed):
 		_advance()
 		get_viewport().set_input_as_handled()  # don't let the world see this press
 
-	if Engine.get_process_frames() == _opened_on_frame:
-		return  # ignore input on the frame the box opened, see TODO 12
 
 # =============================================================================
 # TODO 12 — input, and the bug this whole TODO exists to prevent.
