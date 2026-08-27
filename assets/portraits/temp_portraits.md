@@ -1,0 +1,1 @@
+| res://assets/portraits/npc_fisherman_portrait_mock.png | Stand-in art: PixelLab | fisherman dialogue portrait |

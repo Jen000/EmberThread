@@ -44,7 +44,7 @@ func _ready() -> void:
 	_lantern_sprite.texture = AssetRegistry.get_sprite("object_lantern_broken")
 
 func _on_signpost_read(_interactor: Node2D) -> void:
-	Dialogue.say("", ["Harbour, down the hill.", "Mind the fog."])
+	Dialogue.say("", ["Oh","Harbour, down the hill.", "Mind the fog."])
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not OS.is_debug_build():
