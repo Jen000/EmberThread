@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/main/test_room.tscn" id="1_room"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/pip/pip.tscn" id="3_pip"]
+[ext_resource type="Script" path="res://scenes/ui/interaction_hint.gd" id="4_hint"]
 
 [node name="Main" type="Node2D"]
 
@@ -30,3 +31,20 @@ theme_override_colors/font_color = Color(0.94902, 0.87451, 0.764706, 0.85)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.4)
 theme_override_font_sizes/font_size = 8
 text = "Move — WASD / Arrows / Left Stick      Interact — E / Space / A"
+
+[node name="InteractionHint" type="Label" parent="UI"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -60.0
+offset_top = -28.0
+offset_right = 60.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.94902, 0.87451, 0.764706, 0.95)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
+horizontal_alignment = 1
+script = ExtResource("4_hint")

@@ -1,6 +1,4 @@
 extends Label
-## STUB — you're building this one. Four TODOs, and TODO 4 is filled in.
-##
 ## The one line of text that tells the player what the button will DO.
 ##
 ## The outline says "something is here". It cannot say whether pressing E will
@@ -13,88 +11,74 @@ extends Label
 ## current state* ("you could talk to someone"), not the object, so it belongs
 ## on the HUD — and that way adding an NPC needs no hint wiring at all.
 ##
-## ---------------------------------------------------------------------------
-## SCENE SETUP — in scenes/main/main.tscn, under the existing `UI` CanvasLayer:
+## Lives at main.tscn -> UI -> InteractionHint, anchored centre-bottom just
+## above the ControlsHint line.
 ##
-##   1. Right-click UI -> Add Child Node -> Label. Name it InteractionHint.
-##   2. Layout -> Anchors Preset -> Center Bottom.
-##   3. Layout -> Anchor Offsets -> Top = -28   (sits just above ControlsHint)
-##   4. Inspector -> Horizontal Alignment -> Center.
-##   5. Drag this script onto its Script property.
-##
-## Sizes are at native 480x270. Don't set a font size in the Inspector —
-## TODO 2 does it in code so it can scale with the accessibility setting.
-## ---------------------------------------------------------------------------
-##
-## WHERE THE DATA COMES FROM. Nothing new is needed; both halves already exist:
+## WHERE THE DATA COMES FROM. Nothing bespoke; both halves already existed:
 ##
 ##   InteractionSensor.focus_changed(interactable)   fires with the object when
 ##       you walk into range, and with null when you leave
 ##   Interactable.prompt_verb                        "Talk", "Read", "Mend"
 ##
-## `prompt_verb` has been sitting unread since the floating prompt was deleted
-## in step 1. This is the home it was waiting for.
+## `prompt_verb` had been unread since the floating prompt was deleted in step
+## 1. This is the home it was waiting for.
 
-## The base size before the accessibility multiplier. Matches the old floating
-## prompt so the hint and the dialogue box read as the same voice.
+## The base size before the accessibility multiplier. Matches the dialogue box
+## so the hint and the box read as the same voice.
 const BASE_FONT_SIZE := 8
 
 
 func _ready() -> void:
-	# TODO 1 — listen to the player's sensor.
-	#
-	#   The player joined the "player" group in step 5, so:
-	#     var player := get_tree().get_first_node_in_group("player")
-	#   then find its InteractionSensor child (by type, the way
-	#   interactable.gd finds its Highlight — not by name), and connect
-	#   its `focus_changed` signal to _on_focus_changed.
-	#
-	#   Guard for not finding either. This label lives in main.tscn and a
-	#   scene might not have a player in it (a menu, a cutscene), and a
-	#   missing player should mean "no hint", not a crash.
-	#
-	#   ORDERING, because it bites here: main.tscn's UI is a sibling of the
-	#   Player, and sibling _ready() order follows scene-tree order. If the
-	#   sensor isn't found, `await get_tree().process_frame` first, then look.
+	visible = false
+	_apply_text_scale()
+	# Live updates when the settings slider moves (step 9). Settings is an
+	# autoload, so this connection outlives any scene change.
+	Settings.changed.connect(_apply_text_scale)
 
-	# TODO 2 — accessibility, and start hidden.
-	#
-	#   add_theme_font_size_override(&"font_size", <base * scale>) where the
-	#   scale is Settings.text_scale, rounded to a whole number and at least 1.
-	#   Then connect Settings.changed so it updates live when the slider moves
-	#   (the same shape core/settings.gd documents, and what the dialogue box
-	#   will do in step 9).
-	#
-	#   Then `visible = false` — nothing is focused at startup.
-	pass
+	var sensor := await _find_sensor()
+	if sensor != null:
+		sensor.focus_changed.connect(_on_focus_changed)
 
 
 ## Called whenever the sensor changes its mind about what you'd press.
 ## `interactable` is null when nothing is in reach.
-func _on_focus_changed(_interactable: Interactable) -> void:
-	# TODO 3 — show or hide.
-	#
-	#   null            -> visible = false
-	#   an Interactable -> text = "[%s] %s" % [_input_hint(), it.prompt_verb]
-	#                      visible = true
-	#
-	#   Rename the parameter to `interactable` once you use it; the leading
-	#   underscore is Godot's "deliberately unused" convention.
-	#
-	#   Worth considering, not required: an object with `active = false` is
-	#   skipped by the sensor entirely, so it can never reach you here. One
-	#   less case to handle.
-	pass
+func _on_focus_changed(interactable: Interactable) -> void:
+	if interactable == null:
+		visible = false
+		return
+	text = "[%s] %s" % [_input_hint(), interactable.prompt_verb]
+	visible = true
 
 
-# =============================================================================
-# TODO 4 — DONE, as a worked example.
-# =============================================================================
+## Adjustable text size is a required accessibility option, so the hint reads
+## the setting rather than baking a size into the scene.
+func _apply_text_scale() -> void:
+	add_theme_font_size_override(
+			&"font_size", maxi(1, roundi(BASE_FONT_SIZE * Settings.text_scale)))
+
+
+## The player's sensor, or null in a scene that has no player (a menu, a
+## cutscene) — in which case there is simply never a hint.
+##
+## The UI layer is a *sibling* of the Player in main.tscn, and sibling _ready()
+## order follows scene-tree order, so on the first look the player may not
+## exist yet. One frame's wait is enough; after that it genuinely isn't there.
+func _find_sensor() -> InteractionSensor:
+	for attempt in 2:
+		var player := get_tree().get_first_node_in_group(&"player")
+		if player != null:
+			for child in player.get_children():
+				if child is InteractionSensor:
+					return child as InteractionSensor
+		if attempt == 0:
+			await get_tree().process_frame
+	return null
+
 
 ## The key currently bound to [interact], so the hint reads "[E] Talk" and
-## stays correct after the player remaps their controls — which they can,
-## and remappable controls are on the required accessibility list. Hardcoding
-## "E" is a bug that ships.
+## stays correct after the player remaps their controls — which they can, and
+## remappable controls are on the required accessibility list. Hardcoding "E"
+## is a bug that ships.
 ##
 ## Falls back to the action name if someone unbinds the keyboard entirely and
 ## plays on a pad. Showing a controller glyph when a pad was last used is the
