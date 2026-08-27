@@ -475,6 +475,16 @@ Not optional and not a later task:
   the signal and that survives any colourblindness — but don't add a
   colour-coded highlight later (gold = talk, blue = mend) without a second cue.
 - The world pausing during dialogue is itself an accessibility feature. Keep it.
+- **The interaction hint** (`scenes/ui/interaction_hint.gd`, four TODOs) — one
+  HUD label showing the focused object's `prompt_verb`. The outline says
+  *something is here*; only a word says whether the button will Talk, Read or
+  Mend. It also restores the key lookup deleted in step 1, so the hint reads
+  "[E] Talk" and stays right after remapping. Each object already carries its
+  own verb, so the signpost says Read and the fisherman says Talk with no
+  per-object wiring.
+  **Note:** a HUD hint says *what* but not *which*. With two things in reach it
+  reads "Talk" without showing who — so it complements the highlight rather
+  than replacing it. See the affordance note in that file's header.
 
 ---
 
