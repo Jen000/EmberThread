@@ -1,23 +1,24 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://cda5d8t8mb0wg"]
 
-[ext_resource type="PackedScene" path="res://scenes/main/test_room.tscn" id="1_room"]
+[ext_resource type="PackedScene" uid="uid://djk7qt1ii5k6a" path="res://scenes/main/test_room.tscn" id="1_room"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/pip/pip.tscn" id="3_pip"]
+[ext_resource type="Script" uid="uid://dytuw5d4dvifv" path="res://scenes/ui/interaction_hint.gd" id="4_l3cfh"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=812120936]
 
-[node name="TestRoom" parent="." instance=ExtResource("1_room")]
+[node name="TestRoom" parent="." unique_id=149480073 instance=ExtResource("1_room")]
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
+[node name="Player" parent="." unique_id=104805603 instance=ExtResource("2_player")]
 position = Vector2(110, 200)
 
-[node name="Pip" parent="." instance=ExtResource("3_pip")]
+[node name="Pip" parent="." unique_id=1257216074 instance=ExtResource("3_pip")]
 position = Vector2(122, 186)
 follow_target_path = NodePath("../Player")
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1472856529]
 
-[node name="ControlsHint" type="Label" parent="UI"]
+[node name="ControlsHint" type="Label" parent="UI" unique_id=987414302]
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
@@ -29,4 +30,18 @@ grow_vertical = 0
 theme_override_colors/font_color = Color(0.94902, 0.87451, 0.764706, 0.85)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.4)
 theme_override_font_sizes/font_size = 8
-text = "Move — WASD / Arrows / Left Stick      Interact — E / Space / A"
+text = "Move — WASD / Arrows / Left Stick      Interact — E / Space"
+
+[node name="InteractionHint" type="Label" parent="UI" unique_id=352876893]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -28.0
+offset_right = 20.0
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1
+script = ExtResource("4_l3cfh")

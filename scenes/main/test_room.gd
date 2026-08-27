@@ -51,10 +51,10 @@ func _ready() -> void:
 	_lantern_sprite.texture = AssetRegistry.get_sprite("object_lantern_broken")
 
 func _on_signpost_read(_interactor: Node2D) -> void:
-	Dialogue.say("signpost", ["Harbour, down the hill.", "Mind the fog."])
+	Dialogue.say("", ["Harbour, down the hill.", "Mind the fog."])
 
 func _on_fisherman_talk(_interactor: Node2D) -> void:
-	Dialogue.say("fisherman", ["Hmph,That light of yours is a bit much for my eyes.", "I can't see the fish with it on.", "Turn that damn thing off!"])
+	Dialogue.say("fisherman", ["Hmph, that light of yours is a bit much for my eyes.", "I can't see the fish with it on.", "Turn that damn thing off!"])
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not OS.is_debug_build():
