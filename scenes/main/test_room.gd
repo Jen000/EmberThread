@@ -30,9 +30,15 @@ extends Node2D
 
 @onready var _signpost: Interactable = $Signpost
 @onready var _lantern_sprite: Sprite2D = $Lantern/Sprite2D
+@onready var _fisherman: Interactable = $Fisherman
+@onready var _fisherman_sprite: Sprite2D = $Fisherman/Sprite2D
 
 
 func _ready() -> void:
+
+	_fisherman.interacted.connect(_on_fisherman_talk)
+
+
 	# This is the whole pattern: the Interactable announces that it was
 	# pressed, and the scene that owns the object decides what that means.
 	# Nothing about signs, trees or NPCs lives inside the component.
@@ -41,10 +47,14 @@ func _ready() -> void:
 	# Texture resolved by logical key, never by path — art-pipeline.md §4.
 	# Real lantern art overwriting the block stand-in appears here with no
 	# code change.
+	_fisherman_sprite.texture = AssetRegistry.get_sprite("npc_fisherman_sprite")
 	_lantern_sprite.texture = AssetRegistry.get_sprite("object_lantern_broken")
 
 func _on_signpost_read(_interactor: Node2D) -> void:
-	Dialogue.say("", ["Oh","Harbour, down the hill.", "Mind the fog."])
+	Dialogue.say("signpost", ["Harbour, down the hill.", "Mind the fog."])
+
+func _on_fisherman_talk(_interactor: Node2D) -> void:
+	Dialogue.say("fisherman", ["Hmph,That light of yours is a bit much for my eyes.", "I can't see the fish with it on.", "Turn that damn thing off!"])
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not OS.is_debug_build():

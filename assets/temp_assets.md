@@ -53,6 +53,7 @@ still present at startup in debug builds.
 | res://assets/sprites/player/player_placeholder_walk_down_01.png | Stand-in art: A cozy pixel art RPG (mender) | walk down |
 | res://assets/sprites/player/player_placeholder_walk_down_00.png | Stand-in art: A cozy pixel art RPG (mender) | walk down |
 | res://assets/sprites/player/player_placeholder_idle_00.png | Stand-in art: A cozy pixel art RPG (mender) | front idle (trimmed) |
+| res://assets/portraits/npc_fisherman_portrait.png | Stand-in art: PixelLab | fisherman dialogue portrait |
 
 <!-- Example row:
 | res://assets/tilesets/coastal/tile_coastal_grass_01.png | Kenney Tiny Town | recoloured to coastal palette |
