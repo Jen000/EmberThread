@@ -27,6 +27,7 @@ AssetRegistry="*res://core/asset_registry.gd"
 SoundManager="*res://core/sound_manager.gd"
 MusicManager="*res://core/music_manager.gd"
 Dialogue="*uid://1g73wfo5b26q"
+MendScreen="*res://scenes/ui/mend_screen.tscn"
 
 [display]
 

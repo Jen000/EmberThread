@@ -21,3 +21,12 @@ var text_scale := 1.0:
 	set(value):
 		text_scale = clampf(value, 0.75, 2.0)
 		changed.emit()
+
+## Interaction hints: the "[E] Talk" label that floats over whatever you could
+## act on. Some players want the world uncluttered and are happy to just press
+## the button; others rely on the words to know what an outline means. On by
+## default — it is the only part of the cue that says *what will happen*.
+var interaction_hints := true:
+	set(value):
+		interaction_hints = value
+		changed.emit()

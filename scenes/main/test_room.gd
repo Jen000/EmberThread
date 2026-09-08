@@ -29,6 +29,7 @@ extends Node2D
 ## Interactable.focus_changed.
 
 @onready var _signpost: Interactable = $Signpost
+@onready var _lantern: Interactable = $Lantern
 @onready var _lantern_sprite: Sprite2D = $Lantern/Sprite2D
 @onready var _fisherman: Interactable = $Fisherman
 @onready var _fisherman_sprite: Sprite2D = $Fisherman/Sprite2D
@@ -43,6 +44,7 @@ func _ready() -> void:
 	# pressed, and the scene that owns the object decides what that means.
 	# Nothing about signs, trees or NPCs lives inside the component.
 	_signpost.interacted.connect(_on_signpost_read)
+	_lantern.interacted.connect(_on_lantern_mend)
 
 	# Texture resolved by logical key, never by path — art-pipeline.md §4.
 	# Real lantern art overwriting the block stand-in appears here with no
@@ -55,6 +57,12 @@ func _on_signpost_read(_interactor: Node2D) -> void:
 
 func _on_fisherman_talk(_interactor: Node2D) -> void:
 	Dialogue.say("fisherman", ["Hmph, that light of yours is a bit much for my eyes.", "I can't see the fish with it on.", "Turn that damn thing off!"])
+
+func _on_lantern_mend(_interactor: Node2D) -> void:
+	# A shell for now — proves the way in and out before any technique is
+	# built on top of it. See scenes/ui/mend_screen.gd.
+	MendScreen.open("Sable's cracked lantern")
+
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not OS.is_debug_build():

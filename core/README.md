@@ -15,6 +15,7 @@ the settings menu UI arrives later.
 |---|---|---|
 | `reduced_sensory` | `false` | Systems that pulse, flash or flicker soften (Pip's glow already does) |
 | `text_scale` | `1.0` (0.75–2.0) | Every font size = a base size × this (interaction prompts already do) |
+| `interaction_hints` | `true` | The "[E] Talk" label floating over the focused object |
 
 ## AssetRegistry
 

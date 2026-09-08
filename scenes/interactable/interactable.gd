@@ -48,6 +48,11 @@ const INTERACTABLE_LAYER := 1 << 2
 ## there isn't one.
 @export var radius := 16.0
 
+## Where the interaction hint floats, relative to this object's origin.
+## Origins sit at the feet, so this is how tall the object is plus a little
+## clearance — a 32px NPC wants about -44, a 16px lantern about -24.
+@export var hint_offset := Vector2(0, -24)
+
 ## Dormant interactables are skipped entirely: no prompt, no signal. Story
 ## gating and "already done" both use this (same idea as Sensable.active).
 @export var active := true:
