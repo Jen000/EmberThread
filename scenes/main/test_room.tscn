@@ -340,6 +340,7 @@ script = ExtResource("4_highlight")
 position = Vector2(200, 170)
 script = ExtResource("3_interactable")
 prompt_verb = "Talk"
-hint_offset = Vector2(0, -46)
+hint_offset = Vector2(0, -40)
 
 [node name="Sprite2D" type="Sprite2D" parent="Fisherman" unique_id=155285716]
+position = Vector2(0, -18)
