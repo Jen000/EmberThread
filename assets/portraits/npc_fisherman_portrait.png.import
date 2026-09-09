@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bvde2shbudxph"
-path="res://.godot/imported/dirt_and_grass.png-44aaa14ba92ca3d18406eb5a9bfccc5a.ctex"
+uid="uid://do8ysvd12afdv"
+path="res://.godot/imported/npc_fisherman_portrait.png-edb45635d4cfc10c2874ffc5b124a962.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://tilesets/dirt_and_grass.png"
-dest_files=["res://.godot/imported/dirt_and_grass.png-44aaa14ba92ca3d18406eb5a9bfccc5a.ctex"]
+source_file="res://assets/portraits/npc_fisherman_portrait.png"
+dest_files=["res://.godot/imported/npc_fisherman_portrait.png-edb45635d4cfc10c2874ffc5b124a962.ctex"]
 
 [params]
 

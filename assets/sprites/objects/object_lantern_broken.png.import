@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://da7exb46r5atf"
-path="res://.godot/imported/sand_and_grass.png-bc800daee3bc43bcc0b5ce14d3bbcd4a.ctex"
+uid="uid://cmppj35mut1u5"
+path="res://.godot/imported/object_lantern_broken.png-7658e54a13b9e761f28b7cabe314fad8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://tilesets/sand_and_grass.png"
-dest_files=["res://.godot/imported/sand_and_grass.png-bc800daee3bc43bcc0b5ce14d3bbcd4a.ctex"]
+source_file="res://assets/sprites/objects/object_lantern_broken.png"
+dest_files=["res://.godot/imported/object_lantern_broken.png-7658e54a13b9e761f28b7cabe314fad8.ctex"]
 
 [params]
 

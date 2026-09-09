@@ -1,0 +1,77 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/mend_screen.gd" id="1_mend"]
+
+[node name="MendScreen" type="CanvasLayer"]
+layer = 20
+process_mode = 3
+script = ExtResource("1_mend")
+
+[node name="Root" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="ColorRect" parent="Root"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0470588, 0.0392157, 0.0588235, 0.82)
+
+[node name="Panel" type="ColorRect" parent="Root"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -100.0
+offset_right = 180.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.129412, 0.109804, 0.152941, 0.96)
+
+[node name="Title" type="Label" parent="Root/Panel"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -34.0
+offset_bottom = 22.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.94902, 0.87451, 0.764706, 0.95)
+text = "Mending"
+
+[node name="Hint" type="Label" parent="Root/Panel"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -6.0
+offset_right = 140.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.760784, 0.709804, 0.658824, 0.7)
+theme_override_font_sizes/font_size = 8
+text = "The mending happens here."
+horizontal_alignment = 1
+
+[node name="CloseButton" type="Button" parent="Root/Panel"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -26.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = 24.0
+grow_horizontal = 0
+text = "X"
