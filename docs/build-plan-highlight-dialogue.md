@@ -1,11 +1,19 @@
 # Build plan — highlight, click-to-interact, dialogue box
 
+> **Status: built.** Steps 1–10 are done and on the `interaction-triggers`
+> branch. The TODO blocks this plan sends you to have been removed from the
+> code now that they're filled in, so read the finished files alongside it —
+> `scenes/interactable/README.md` and `scenes/ui/README.md` describe what
+> actually shipped. This plan stays as the record of *why* each piece is
+> shaped the way it is, and as the pattern to follow for the next system.
+
 You're building this one; I've written the shader, the stubs and this plan,
 and I'll review when you push.
 
 **What you're making.** Walk near an object → it gets a soft outline. Press E
-or click it → a box slides up at the bottom with the text. Replaces the
-floating `[E] Read` label, which is going away entirely.
+or click it → a box slides up at the bottom with the text. The old floating
+`[E] Read` label comes out in step 1 so you're not debugging two systems at
+once; a smaller, optional version of it comes back in step 9.
 
 **Order matters.** Each step ends with something you can run. Don't move on
 until the check passes — the middle steps are much harder to debug in a pile.
@@ -470,39 +478,46 @@ Not optional and not a later task:
   Set it to 2.0 and confirm the text still fits its box — this is exactly the
   bug that ships in real games.
 - Reveal speed needs to be adjustable or skippable; "adjustable game speed" is
-  on the required list and text speed is part of it.
+  on the required list and text speed is part of it. → `Settings.text_speed`
+  (0.5–5.0) multiplies the box's base reveal speed; a press mid-reveal still
+  completes the line instantly.
 - Outline colour must not be the only signal. It isn't — presence/absence is
   the signal and that survives any colourblindness — but don't add a
   colour-coded highlight later (gold = talk, blue = mend) without a second cue.
 - The world pausing during dialogue is itself an accessibility feature. Keep it.
-- **The interaction hint** (`scenes/ui/interaction_hint.gd`, four TODOs) — one
-  HUD label showing the focused object's `prompt_verb`. The outline says
-  *something is here*; only a word says whether the button will Talk, Read or
-  Mend. It also restores the key lookup deleted in step 1, so the hint reads
-  "[E] Talk" and stays right after remapping. Each object already carries its
-  own verb, so the signpost says Read and the fisherman says Talk with no
-  per-object wiring.
-  **Note:** a HUD hint says *what* but not *which*. With two things in reach it
-  reads "Talk" without showing who — so it complements the highlight rather
-  than replacing it. See the affordance note in that file's header.
+- **The interaction hint** (`scenes/ui/interaction_hint.gd`) — a label showing
+  the focused object's `prompt_verb`. The outline says *something is here*;
+  only a word says whether the button will Talk, Read or Mend. It also
+  restores the key lookup deleted in step 1, so the hint reads "[E] Talk" and
+  stays right after remapping. Each object already carries its own verb, so
+  the signpost says Read and the fisherman says Talk with no per-object
+  wiring.
+  It floats **above the focused object** rather than sitting in a fixed HUD
+  corner (`Interactable.hint_offset` sets how high), which answers *which*
+  as well as *what* when two things are in reach. `Settings.interaction_hints`
+  turns it off for players who want the world uncluttered, and it hides itself
+  whenever the tree is paused so it never sits on top of a full-screen UI.
 
 ---
 
 ## Step 10 — Tests and docs
 
-`tests/interaction_smoke.gd` still passes as-is (it tests focus and the
-signal, not the label). Add to it, or write a sibling test:
-
-- highlight `is_shown()` true on approach, false when facing away
-- `Dialogue.say(...)` sets `is_open`, advance closes it, `finished` fires
-- the tree is actually paused while open
+`tests/interaction_smoke.gd` now drives the whole loop: it walks the player to
+the signpost, checks focus, fires `interact`, then asserts the dialogue opened
+*and* paused the tree, advances through it, checks the world resumed, and walks
+away to check focus clears.
 
 ```
 godot --headless --path . res://tests/interaction_smoke.tscn
 ```
 
-Then update `scenes/interactable/README.md` — the prompt-label sections and
-the `show_message` references are wrong once step 1 lands.
+One trap worth remembering: the test scene needs
+`process_mode = Node.PROCESS_MODE_ALWAYS`, because the dialogue box pauses the
+tree and a paused test script never reaches its next `await`. It doesn't fail —
+it hangs, which looks like Godot being broken.
+
+`scenes/interactable/README.md` and `scenes/ui/README.md` describe the finished
+system; keep them true as this grows.
 
 ---
 

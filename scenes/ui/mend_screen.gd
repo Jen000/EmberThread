@@ -38,7 +38,7 @@ const BASE_FONT_SIZE := 8
 var is_open := false
 
 ## Guards against the press that opened the screen also closing it — the same
-## one-frame problem the dialogue box has in TODO 12.
+## one-frame problem the dialogue box solves the same way.
 var _opened_on_frame := -1
 
 @onready var _root: Control = $Root

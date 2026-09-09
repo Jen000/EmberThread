@@ -19,6 +19,11 @@ var _interacted := false
 
 
 func _ready() -> void:
+	# The signpost now opens the dialogue box, which pauses the tree. A pausable
+	# test node would stop right there and never reach its own quit() — the run
+	# hangs forever. ALWAYS keeps this harness running either way. (Different
+	# from the box's own "When Paused", which runs ONLY while paused.)
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	var main: Node = load("res://scenes/main/main.tscn").instantiate()
 	add_child(main)
 	_player = main.get_node("Player")
@@ -53,11 +58,26 @@ func _physics_process(_delta: float) -> void:
 		2:  # pressing [interact] reaches the object's listener
 			if _interacted:
 				print("ok: interacted signal emitted on press")
-				_player.facing = Vector2.DOWN
-				_set_phase(3, 60)
+				if not Dialogue.is_open:
+					_fail("dialogue did not open")
+					return
+				if not get_tree().paused:
+					_fail("dialogue did not pause the world")
+					return
+				print("ok: dialogue opened and paused the world")
+				_set_phase(3, 120)
 			elif _frame >= _deadline:
 				_fail("interacted never emitted")
-		3:  # facing away drops it, even though it is still in range
+		3:  # click through the lines; the world must be running again after
+			if Dialogue.is_open:
+				Dialogue.advance()
+			elif not get_tree().paused:
+				print("ok: dialogue closed and the world resumed")
+				_player.facing = Vector2.DOWN
+				_set_phase(4, 60)
+			elif _frame >= _deadline:
+				_fail("dialogue never closed")
+		4:  # facing away drops it, even though it is still in range
 			if _sensor.focused == null:
 				print("ok: focus clears when facing away")
 				print("PASS: interaction smoke test")

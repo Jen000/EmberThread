@@ -28,7 +28,12 @@ the portrait hides and the box still reads. **Adding a portrait is dropping a
 correctly-named PNG in that folder** — there is no registration step.
 
 Pauses the world while open. Advance with `interact` or a left click; a press
-mid-reveal completes the line rather than skipping it.
+mid-reveal completes the line rather than skipping it. `Dialogue.advance()` is
+public for anything that isn't a keypress — a cutscene auto-advancing, a skip
+button, the smoke test.
+
+Reveal speed is `reveal_speed × Settings.text_speed`, and the font is
+`BASE_FONT_SIZE × Settings.text_scale`, reapplied live on `Settings.changed`.
 
 ## MendScreen
 

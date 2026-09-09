@@ -1,11 +1,5 @@
 # Interaction triggers
 
-> **In progress:** the floating `[E] Read` prompt described below is being
-> replaced by an outline highlight plus a dialogue box at the bottom of the
-> screen. See `docs/build-plan-highlight-dialogue.md`. The trigger and sensor
-> halves don't change — only what they *display*. Sections marked ⚠ below go
-> away in step 1 of that plan.
-
 Talking to an NPC, reading a sign, shaking a tree, opening a door, starting a
 mend — from the code's point of view these are all the same three questions:
 
@@ -42,7 +36,7 @@ project.godot              [layer_names] physics layer 3 = "interactable"
              │                                 │
    target.set_focused(true)             emits  interacted(player)
              │                                 │
-     "[E] Read" appears            test_room.gd._on_signpost_read()  ← your code
+  outline + "[E] Read" hint      test_room.gd._on_signpost_read()  ← your code
 ```
 
 The sensor is the **only** place in the game that turns a button press into an
@@ -51,22 +45,23 @@ object picked — there is one file to open.
 
 ## Try it
 
-Run the project and walk up to the signpost, left of centre in the test room.
-A `[E] Read` prompt floats above it; press E (or Space, or A on a pad) and it
-answers. Then read `scenes/main/test_room.gd` — the response is six lines.
+Run the project and walk up to the signpost. It outlines, an `[E] Read` hint
+floats above it, and pressing E opens the dialogue box. The lantern opens the
+mending screen; the fisherman talks, with a portrait. Then read
+`scenes/main/test_room.gd` — each response is one line.
 
 ## `Interactable` — the trigger
 
 Attach `interactable.gd` to an `Area2D`. That's the whole setup; it gives
-itself a collision shape and a prompt label at runtime, so there is nothing to
-forget.
+itself a collision shape at runtime, so there is nothing to forget. Add a
+`Highlight` child if it should outline on approach.
 
 | Property | Default | Meaning |
 |---|---|---|
-| `prompt_verb` | `"Look"` | ⚠ Verb shown in the prompt (the label goes; the property stays as data for the new UI). The key name is filled in from the current binding — never type "E" yourself |
+| `prompt_verb` | `"Look"` | The verb the hint shows — `"Talk"`, `"Read"`, `"Mend"`. The key name comes from the current binding; never type "E" yourself |
 | `radius` | `16.0` | Reach in pixels. Ignored if you add your own `CollisionShape2D` child |
-| `active` | `true` | Dormant = no prompt, no signal. Story gating and "already done" both use this |
-| `prompt_offset` | `(0, -20)` | Where the prompt floats, relative to the node's origin |
+| `active` | `true` | Dormant = no hint, no highlight, no signal. Story gating and "already done" both use this |
+| `hint_offset` | `(0, -24)` | How high the hint floats. Origins are at the feet, so roughly the object's height plus clearance |
 
 | Signal | When |
 |---|---|
@@ -74,16 +69,13 @@ forget.
 | `focus_changed(focused)` | It became / stopped being the thing you'd hit — for a highlight, a sound, Pip reacting |
 
 ```gdscript
-interactable.set_active(false)                 # story hasn't opened this yet
-interactable.show_message("It's locked.", 2.0) # floating text, see below
-Interactable.input_hint()                      # "E" — whatever is bound now
+interactable.set_active(false)   # story hasn't opened this yet
 ```
 
-⚠ `show_message()` is deliberately humble: one line of floating text for casual
-background chatter and small acknowledgements. It is **not** the dialogue
-system — that's build step 6 (portrait, text box, paused world), and when it
-arrives it will listen to `interacted` in exactly the same way. Nothing about
-the triggers changes then.
+**Saying something is not this component's job.** `interacted` is announced;
+what happens next lives wherever the object does. In the test room that's
+`test_room.gd`, calling `Dialogue.say(...)` or `MendScreen.open(...)` — see
+`scenes/ui/README.md`.
 
 ## `InteractionSensor` — picking the right target
 
@@ -129,7 +121,7 @@ func _ready() -> void:
     _fisherman.interacted.connect(_on_fisherman_talk)
 
 func _on_fisherman_talk(_interactor: Node2D) -> void:
-    _fisherman.show_message("Hmph. That light of yours.", 2.5)
+    Dialogue.say("fisherman", ["Hmph. That light of yours."])
 ```
 
 **4. Play it.** Walk up. Prompt appears. Press E.
@@ -150,7 +142,7 @@ const FISHERMAN_LINES := [
 func _on_fisherman_talk(_interactor: Node2D) -> void:
     var line: String = FISHERMAN_LINES[mini(_fisherman_visits, FISHERMAN_LINES.size() - 1)]
     _fisherman_visits += 1
-    _fisherman.show_message(line, 3.0)
+    Dialogue.say("fisherman", [line])
 ```
 
 That counter belongs in a save file eventually, not in the room script — see
@@ -188,11 +180,11 @@ func _ready() -> void:
 
 func _on_shaken(_interactor: Node2D) -> void:
     if Time.get_ticks_msec() / 1000.0 < _ready_at:
-        show_message("Still settling.", 1.5)
+        Dialogue.say("", ["Still settling."])
         return
     _ready_at = Time.get_ticks_msec() / 1000.0 + shake_cooldown
     _shake()
-    show_message("A few leaves come loose.", 2.0)
+    Dialogue.say("", ["A few leaves come loose."])
 
 func _shake() -> void:
     var visual := $Visual

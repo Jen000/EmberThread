@@ -22,6 +22,16 @@ var text_scale := 1.0:
 		text_scale = clampf(value, 0.75, 2.0)
 		changed.emit()
 
+## How fast dialogue reveals itself, as a multiplier on each box's base speed.
+## "Adjustable game speed" is on the required accessibility list and text speed
+## is part of it: some players read far faster than a comfortable default, and
+## some need longer. High values are effectively instant, which is the setting
+## a screen-reader user or an impatient replayer wants.
+var text_speed := 1.0:
+	set(value):
+		text_speed = clampf(value, 0.5, 5.0)
+		changed.emit()
+
 ## Interaction hints: the "[E] Talk" label that floats over whatever you could
 ## act on. Some players want the world uncluttered and are happy to just press
 ## the button; others rely on the words to know what an outline means. On by

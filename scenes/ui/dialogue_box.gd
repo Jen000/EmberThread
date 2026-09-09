@@ -1,7 +1,4 @@
 extends CanvasLayer
-## STUB — you're building this one. See docs/build-plan-highlight-dialogue.md
-## steps 5–7.
-##
 ## The text box at the bottom of the screen. Registered as an autoload
 ## (`Dialogue`) so any object anywhere can say something without wiring a
 ## path to it:
@@ -24,7 +21,7 @@ extends CanvasLayer
 ## zero code edits (art-pipeline.md §10).
 ##
 ## ---------------------------------------------------------------------------
-## GODOT VOCABULARY for this file.
+## GODOT VOCABULARY, kept as a reference for whoever picks this up next.
 ##
 ##   CanvasLayer    Draws its children on a layer above the world, unaffected
 ##                  by the camera. That's why UI goes in one — the box stays
@@ -49,36 +46,24 @@ extends CanvasLayer
 ##                  works from any script without a node path.
 ##
 ##   process_mode   Whether a node keeps running while the tree is paused.
-##                  Critical here — see TODO 3.
+##                  This scene's root is "When Paused" — without it the box
+##                  would pause along with the world it just paused, and
+##                  nothing could un-pause it.
 ## ---------------------------------------------------------------------------
 ##
-## BUILD THE SCENE FIRST (dialogue_box.tscn), then write the code.
+## SCENE STRUCTURE (dialogue_box.tscn), all sized at native 480x270:
 ##
-##   1. New Scene -> Other Node -> CanvasLayer. Rename it DialogueBox.
-##      Attach this script to it. Save as scenes/ui/dialogue_box.tscn.
-##   2. Add child Control, name it Root.
-##        Inspector -> Layout -> Anchors Preset -> Full Rect.
-##        Inspector -> Mouse -> Filter -> Ignore   (so it never eats clicks
-##        meant for the world underneath).
-##   3. Under Root add NinePatchRect, name it Frame.
-##        Anchors Preset -> Bottom Wide. Height 76, offset_top -76.
-##        No texture yet — that's TODO 4.
-##   4. Under Frame add TextureRect "Portrait", 64x64, a few px in from the
-##      left. 64x64 is locked by art-pipeline.md §2 — don't shrink it to make
-##      the layout easier, that decision belongs to the artist.
-##   5. Under Frame add RichTextLabel "Text", filling the space right of the
-##      portrait (roughly 396x60).
-##   6. Under Frame add TextureRect "Continue", small, bottom-right. This is
-##      the little "press to go on" arrow. Leave it hidden for now.
-##   7. Select DialogueBox (the root) -> Inspector -> Process -> Mode ->
-##      "When Paused". THIS IS THE ONE PEOPLE MISS. See TODO 3.
-##   8. Project -> Project Settings -> Globals -> Autoload. Add
-##      scenes/ui/dialogue_box.tscn (the SCENE, not the script) with the name
-##      `Dialogue`. That name is what makes `Dialogue.say(...)` resolve.
+##   DialogueBox            CanvasLayer   process_mode = When Paused
+##     Root                 Control       full rect, mouse_filter = Ignore
+##       Frame              NinePatchRect bottom wide, offset_top -76
+##         ColorRect        ColorRect     the drawn stand-in until art lands
+##         Portrait         TextureRect   64x64, locked by art-pipeline.md §2
+##         Text             RichTextLabel right of the portrait
+##         Continue         TextureRect   the "press to go on" arrow
 ##
-## Sizes are at native 480x270 — build to that, never to 1920x1080. Portraits
-## at 64x64 are a big chunk of a 270px-tall screen; that's what sets the box
-## height, so lay it out against a real 64x64 block before the artist commits.
+## Portraits at 64x64 are a big chunk of a 270px-tall screen; that is what
+## sets the box height. Lay out against a real 64x64 block before changing it.
+
 
 ## Emitted when the last line is dismissed and the world resumes. Await it to
 ## sequence things: a memory cutscene after a conversation, say.
@@ -89,8 +74,9 @@ signal line_shown(index: int)
 
 const BASE_FONT_SIZE := 8
 
-## Characters revealed per second. Slow enough to feel spoken, fast enough
-## that nobody's waiting. Tune it by reading along out loud.
+## Characters revealed per second, before the player's `Settings.text_speed`
+## multiplier. Slow enough to feel spoken, fast enough that nobody's waiting.
+## Tune it by reading along out loud.
 @export var reveal_speed := 30.0
 
 ## True while a conversation is on screen. Interaction must not start a new
@@ -116,8 +102,18 @@ var _reveal: Tween
 
 
 func _ready() -> void:
-	_text.add_theme_font_size_override(&"normal_font_size", BASE_FONT_SIZE)
 	_root.visible = false
+	_apply_text_scale()
+	# Live updates when the settings sliders move. Settings is an autoload, so
+	# this connection outlives any scene change.
+	Settings.changed.connect(_apply_text_scale)
+
+
+## Adjustable text size is a required accessibility option, so the box derives
+## its size from the setting rather than baking one into the scene.
+func _apply_text_scale() -> void:
+	_text.add_theme_font_size_override(
+			&"normal_font_size", maxi(1, roundi(BASE_FONT_SIZE * Settings.text_scale)))
 
 
 ## Show a conversation. `speaker_id` is the AssetRegistry portrait key
@@ -152,57 +148,16 @@ func say(speaker_id: String, new_lines: PackedStringArray) -> void:
 	_show_line(0)
 
 
-
-
-
-# =============================================================================
-# TODO 1 — guard and store.
-#   Return early if lines.is_empty(). Store `lines` in a member var, and reset
-#   a line-index var to 0. Declare both up with is_open.
-#
-# TODO 2 — go visible.
-#   is_open = true, _root.visible = true.
-#   Also record Engine.get_process_frames() into a member var here. You won't
-#   use it until TODO 12, but this is where the value has to be captured.
-#
-# TODO 3 — pause the world.
-#   get_tree().paused = true
-#
-#   Everything in the tree stops: player, Pip, the interaction sensor. That's
-#   what you want — except this box would stop too, and then nothing can
-#   un-pause it. The game appears to freeze with a dead box on screen and it
-#   looks exactly like a crash.
-#
-#   The fix is step 7 of the scene setup: process_mode = "When Paused" on the
-#   DialogueBox root. Set it in the INSPECTOR, not in code — a thing you can
-#   see in the scene is a thing you can debug.
-#
-# TODO 4 — resolve the art, degrade quietly.
-#   var frame_texture := AssetRegistry.get_sprite("ui_dialogue_box")
-#   var portrait := AssetRegistry.get_portrait(speaker_id)
-#
-#   Both return null when the file doesn't exist yet, which is TODAY and will
-#   be true for months. So:
-#     - frame null -> leave the NinePatchRect untextured and give Frame a
-#       plain background (a ColorRect behind it, or a StyleBox) so text is
-#       readable. Temporary and honest, like the block placeholders.
-#     - portrait null or speaker_id empty -> _portrait.visible = false, and
-#       let the text use the full width.
-#
-#   Do NOT write `if speaker_id == "sable"` anywhere. The key goes to the
-#   registry, the registry finds the file. That's the whole seam.
-#
-# TODO 5 — show the first line: call _show_line(0).
-# =============================================================================
-
-
 ## Reveal one line, typewriter style.
 func _show_line(index: int) -> void:
 	_text.text = _lines[index]
 	_text.visible_ratio = 0.0
 	_continue.visible = false
 	_reveal = create_tween()
-	_reveal.tween_property(_text, "visible_ratio", 1.0, _lines[index].length() / reveal_speed)
+	# Duration from the line's length, so the *speed* stays constant and a long
+	# line doesn't crawl. Settings.text_speed lets the player scale that.
+	var duration := _lines[index].length() / (reveal_speed * Settings.text_speed)
+	_reveal.tween_property(_text, "visible_ratio", 1.0, duration)
 	_reveal.finished.connect(_finish_reveal.bind(index))
 
 
@@ -213,60 +168,24 @@ func _finish_reveal(index: int) -> void:
 	_continue.visible = true
 	line_shown.emit(index)
 
-# =============================================================================
-# TODO 6 — the typewriter.
-#   _text.text = <the line at index>
-#   _text.visible_ratio = 0.0
-#   then tween visible_ratio to 1.0 over (line.length() / reveal_speed)
-#   seconds:
-#
-#     var tween := create_tween()
-#     tween.tween_property(_text, "visible_ratio", 1.0, duration)
-#
-#   Dividing by length is what keeps a long line from crawling and a short one
-#   from flashing past — the speed stays constant, the duration varies.
-#
-#   Keep the tween in a member var (`var _reveal: Tween`). TODO 9 needs to
-#   interrupt it.
-#
-# TODO 7 — the continue arrow.
-#   _continue.visible = false while revealing, true once it finishes. Use
-#   `await tween.finished` or tween.tween_callback(...) — either is fine;
-#   await usually reads better.
-#
-# TODO 8 — emit line_shown(index) once the reveal completes.
-# =============================================================================
-
 
 ## Advance: finish the current reveal if it's still running, otherwise move to
 ## the next line, or close if that was the last.
-func _advance() -> void:
+##
+## Public because the player's press is not the only thing that will ever want
+## to advance a line — an auto-advance during a cutscene, a "skip" button, and
+## the smoke test all call it. (Tests calling private methods is a smell: the
+## test then breaks on any rename, and it hides that the thing has no API.)
+func advance() -> void:
 	if _reveal != null and _reveal.is_running():
 		_reveal.kill()
 		_finish_reveal(_line_index)
 		return
+	_line_index += 1
+	if _line_index < _lines.size():
+		_show_line(_line_index)
 	else:
-		_line_index += 1
-		if _line_index < _lines.size():
-			_show_line(_line_index)
-		else:
-			_close()
-
-# =============================================================================
-# TODO 9 — impatience should help, not punish.
-#   If _reveal != null and _reveal.is_running():
-#       _reveal.kill()
-#       _text.visible_ratio = 1.0
-#       _continue.visible = true
-#       return
-#
-#   A player pressing the key mid-reveal wants the REST of the line, not to
-#   skip it. Getting this backwards is the single most irritating dialogue bug
-#   in games, and it's four lines to get right.
-#
-# TODO 10 — otherwise advance the index. If there's another line, _show_line()
-#   it; if there isn't, _close().
-# =============================================================================
+		_close()
 
 
 func _close() -> void:
@@ -275,58 +194,12 @@ func _close() -> void:
 	get_tree().paused = false
 	finished.emit()
 
-# =============================================================================
-# TODO 11 — unwind everything TODO 2 and 3 did, in reverse:
-#   _root.visible = false
-#   is_open = false
-#   get_tree().paused = false
-#   finished.emit()
-#
-#   Order matters: unpause before emitting, or a listener that starts a
-#   cutscene will do it into a still-paused tree.
-# =============================================================================
-
 
 func _unhandled_input(_event: InputEvent) -> void:
 	if is_open == false or _event == null:
 		return
 	if Engine.get_process_frames() == _opened_on_frame:
-		return 
+		return
 	if _event.is_action_pressed("interact") or (_event is InputEventMouseButton and _event.button_index == MOUSE_BUTTON_LEFT and _event.pressed):
-		_advance()
+		advance()
 		get_viewport().set_input_as_handled()  # don't let the world see this press
-
-
-# =============================================================================
-# TODO 12 — input, and the bug this whole TODO exists to prevent.
-#
-#   Rename the parameter from `_event` to `event` when you start using it.
-#   The leading underscore is Godot's convention for "deliberately unused",
-#   and it's what stops the editor warning about it while this is still a stub.
-#
-#   if not is_open: return
-#   Advance on the "interact" action and on a left mouse click:
-#     event.is_action_pressed("interact")
-#     event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT
-#         and event.pressed
-#   Then call _advance() and get_viewport().set_input_as_handled() so the
-#   press never reaches the world underneath and re-triggers the object you
-#   just talked to.
-#
-#   THE BUG, described in advance so you recognise it instead of hunting it:
-#   the same press that opens the box also advances its first line, so short
-#   lines look like they get skipped entirely. It happens because the box
-#   starts existing part-way through a press and then sees that same press.
-#
-#   The fix is the frame number you stored in TODO 2:
-#
-#     if Engine.get_process_frames() == _opened_on_frame:
-#         return
-#
-#   Ignore input on the frame the box opened, and the press that opened it
-#   can't also advance it.
-#
-#   (Using a different key to advance — Space/Enter rather than E — makes this
-#   impossible rather than merely fixed, which is why the plan recommends it.
-#   Keep the guard anyway: the mouse can still click twice in one press path.)
-# =============================================================================
