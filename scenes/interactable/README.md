@@ -56,6 +56,15 @@ Attach `interactable.gd` to an `Area2D`. That's the whole setup; it gives
 itself a collision shape at runtime, so there is nothing to forget. Add a
 `Highlight` child if it should outline on approach.
 
+> **Highlights are for objects. People don't light up.** The fisherman has no
+> `Highlight` child and that is deliberate, not an oversight — please don't
+> "fix" it. An outline answers *is this a thing I can act on*, which you need
+> for a lantern or a signpost and never need for a person. A person is
+> announced by the hint alone. (Consequence worth knowing: with
+> `Settings.interaction_hints` off, an NPC currently has no cue at all. Pip
+> reacting to `focus_changed` is the nicest way to fill that gap if it ever
+> matters — more in the game's voice than a label.)
+
 | Property | Default | Meaning |
 |---|---|---|
 | `prompt_verb` | `"Look"` | The verb the hint shows — `"Talk"`, `"Read"`, `"Mend"`. The key name comes from the current binding; never type "E" yourself |
