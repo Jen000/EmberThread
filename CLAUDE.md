@@ -26,6 +26,7 @@ Read these rather than re-deriving anything; they are the source of truth.
 ## Git workflow
 
 - **Develop on a feature branch and push there — never merge to `main`.** The developer pulls the branch, tests locally, vets it, and merges to `main` themselves. Stop at "pushed to the branch; here's what to test."
+- **Name branches for the work, using the branch-naming skill** (`<type>/<short-description>`, e.g. `feature/pixel-world-map-mock`, `fix/dialogue-box-overlap`). Never use auto-generated names like `claude/quirky-knuth-xiizem`.
 - **Don't open pull requests unless asked.** Don't push to `main` unless the developer explicitly says so for that change.
 
 ## Standing rules
