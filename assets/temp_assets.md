@@ -55,6 +55,7 @@ still present at startup in debug builds.
 | res://assets/sprites/player/player_placeholder_idle_00.png | Stand-in art: A cozy pixel art RPG (mender) | front idle (trimmed) |
 | res://assets/portraits/npc_fisherman_portrait.png | Stand-in art: PixelLab | fisherman dialogue portrait |
 | res://assets/map/map_world.png | Stand-in art: Claude (in-house) | pixel-art world map mock (480x270) — see docs/map-layout.md |
+| res://assets/map/map_coastal.png | Stand-in art: Claude (in-house) | pixel-art Coastal Town map mock (480x270) — see docs/map-layout.md |
 
 <!-- Example row:
 | res://assets/tilesets/coastal/tile_coastal_grass_01.png | Kenney Tiny Town | recoloured to coastal palette |
