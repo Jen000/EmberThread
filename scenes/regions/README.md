@@ -14,7 +14,7 @@ scenes/regions/
   region.gd               base script for every region scene (bounds, spawn
                           points, edge walls, location discoveries)
   location_zone.gd        a named place, e.g. the Tide Pools
-  mock_guide.gd           the map mock laid over the scene as a tracing guide
+  block_building.gd       block stand-in for a building at its real footprint
   coastal/
     coastal_town.tscn     the layout
     coastal_town.gd       what the town does (harbour exit, later NPCs)
@@ -27,11 +27,10 @@ scenes/main/main.gd       loads `region_scene`, places the player at its spawn
 
 | Node | What goes on it |
 |---|---|
-| `MockGuide` | The region's map mock at 3× (`assets/map/map_<region>.png`). In the editor it floats faintly over your tiles so you can trace it. In game it sits underneath everything, so unpainted ground still shows the mock |
 | `Ground` | Base terrain: sea, sand, grass. Sea has collision |
 | `Paths` | Paths and ground detail painted over the base |
 | `Obstacles` | Walls, cliff faces, rocks. Stone has collision |
-| `Objects` | Buildings, trees, NPCs, signs, interactables. Y-sorted, so the player walks behind them |
+| `Objects` | Buildings, trees, NPCs, signs, interactables. Y-sorted, so the player walks behind them. Buildings are `BlockBuilding` stand-ins for now |
 | `AbovePlayer` | Roofs, treetops, the lighthouse top: anything drawn over the player. No collision |
 | `SpawnPoints/default` | Where the player arrives |
 | `Locations` | One `LocationZone` per named place |
@@ -40,20 +39,58 @@ The region's root is y-sorted, and so is `Main`, so the player, Pip and
 everything under `Objects` sort together by their feet. Tile layers sit
 underneath (negative `z_index`), except `AbovePlayer`, which sits on top.
 
-## How to paint the town
+## Scale
+
+Build at the character's scale, not the map's. The player is about 20×35
+px, so as a rule of thumb:
+
+| Thing | Size |
+|---|---|
+| Road | 3 tiles wide (48 px) |
+| Side path | 2 tiles |
+| Cottage | 72×64 px (about 4×4 tiles) |
+| Inn | 144×88 px |
+| Lighthouse | 40×104 px |
+| Market stall | 32×28 px |
+| Tree | 24×40 px |
+
+The map mocks in `assets/map/` show **where** things are, not how big they
+are. Never trace them 1:1, and never use them as ground.
+
+The Coastal Town is 80×48 tiles (1280×768 px, a little under three screens
+each way).
+
+## Changing the town
+
+The town is already painted as a first blockout, from the mock's layout at
+character scale: sea and beach, grass, sandy paths and the market square,
+the cliff with its stairs, and block buildings. Treat it as a starting
+point and repaint freely.
 
 1. Open `scenes/regions/coastal/coastal_town.tscn`.
-2. Select the `Ground` layer and open the **TileMap** panel → **Terrains**
-   tab. Pick terrain set 0, then a terrain (sea, beach sand, ...). Paint with
-   the **Connect** mode and Godot picks the right edge and corner tiles.
-3. Trace the mock: sea where the mock is sea, beach sand along the shore,
-   grass inland. Then do paths on `Paths` and cliffs on `Obstacles`.
-4. Press F5 and walk it. Sea and stone already block movement.
-5. When the whole region is painted, untick `show_in_game` on `MockGuide`
-   (or delete the node).
+2. To repaint ground, select a tile layer, open the **TileMap** panel →
+   **Terrains** tab, pick terrain set 0 and a terrain, and paint in
+   **Connect** mode. Godot picks the right edge and corner tiles.
+3. To move a building, drag it in `Objects`. Its origin is the middle of its
+   base. To resize one, change `size` in the Inspector. Collision follows.
+4. Press F5 and walk it.
 
-The map is 1440×810 pixels (90 × ~51 tiles), the mock at 3×, which puts the
-16×32 player at about the scale the mock's buildings were drawn at.
+## BlockBuilding
+
+A flat-colour block at a building's real footprint, with a magenta border
+and a label so it can't pass for finished art. Only the lower half (by
+default) collides: the roof overhangs, so you can walk right up to the
+front wall and behind the roof.
+
+| Property | Meaning |
+|---|---|
+| `size` | Width × height in pixels, standing on its base |
+| `label` | Text drawn on the wall |
+| `roof_colour`, `wall_colour` | Block colours |
+| `solid_fraction` | How much of the height, from the base up, blocks movement |
+
+When building art lands, replace the block with a `StaticBody2D` holding a
+`Sprite2D` (texture through `AssetRegistry`) and the same collision.
 
 ## The coastal tileset
 
@@ -101,8 +138,8 @@ reveal itself from these, and the save system will remember them.
 
 1. Duplicate `coastal/` as e.g. `forest/` and rename the scene and script.
 2. In the new script, change what the region *does*. In the scene, set
-   `region_id` and `bounds`, point `MockGuide` at the region's mock and the
-   tile layers at the region's tileset (`assets/tilesets/<region>/`).
+   `region_id` and `bounds`, and point the tile layers at the region's
+   tileset (`assets/tilesets/<region>/`).
 3. Replace the spawn point and location zones.
 4. To play it, set `region_scene` on the `Main` node in
    `scenes/main/main.tscn`.
@@ -122,5 +159,6 @@ Pip, interactions and the debug keys. Drag it into `region_scene` on the
 godot --headless --path . res://tests/coastal_town_smoke.tscn
 ```
 
-Checks the spawn point, camera limits, edge walls, terrain painting with sea
-collision, location discovery (once only), and the harbour exit.
+Checks the spawn point, camera limits, edge walls, that the painted sea and
+the buildings block the player, terrain painting, location discovery (once
+only), and the harbour exit.

@@ -5,9 +5,10 @@ extends Node
 ##
 ## Drives the real main scene (which starts in the Coastal Town): the player
 ## arrives at the road spawn point, the camera is held inside the map, the
-## edge walls stop you walking off it, terrain painting picks real tiles from
-## the coastal tileset (and sea blocks movement), walking into the tide pools
-## is recorded as a discovery exactly once, and the harbour exit talks.
+## edge walls stop you walking off it, the painted sea and the block buildings
+## stop you walking into them, terrain painting picks real tiles from the
+## coastal tileset, walking into the tide pools is recorded as a discovery
+## exactly once, and the harbour exit talks.
 ## Exits 0 on pass, 1 on fail — wire into CI whenever that exists.
 
 var _main: Node
@@ -95,24 +96,47 @@ func _physics_process(_delta: float) -> void:
 		_fail("global timeout")
 		return
 	match _phase:
-		0:  # stand by the west edge and walk into it
+		0:  # walk east along the road, into the map's edge
 			if _frame >= _deadline:
-				_player.global_position = Vector2(20, 420)
-				Input.action_press(&"move_left")
-				_set_phase(1, 90)
+				Input.action_press(&"move_right")
+				_set_phase(1, 60)
 		1:  # the invisible edge wall holds
 			if _frame >= _deadline:
-				Input.action_release(&"move_left")
-				if _player.global_position.x < 0.0:
-					_fail("walked off the west edge (x=%s)" % _player.global_position.x)
+				Input.action_release(&"move_right")
+				if _player.global_position.x > _town.bounds.end.x:
+					_fail("walked off the east edge (x=%s)" % _player.global_position.x)
 					return
 				print("ok: edge wall stops the player at x=%.1f" % _player.global_position.x)
+				# Stand on the beach under the cliff and walk west into the sea.
+				_player.global_position = Vector2(184, 400)
+				Input.action_press(&"move_left")
+				_set_phase(10, 90)
+		10:  # the painted sea blocks
+			if _frame >= _deadline:
+				Input.action_release(&"move_left")
+				if _player.global_position.x < 112.0:
+					_fail("walked into the sea (x=%s)" % _player.global_position.x)
+					return
+				print("ok: the sea stops the player at x=%.1f" % _player.global_position.x)
+				# Stand below the inn and walk up into its front wall.
+				var inn := _town.get_node("Objects/Inn") as Node2D
+				_player.global_position = inn.global_position + Vector2(0, 30)
+				Input.action_press(&"move_up")
+				_set_phase(11, 60)
+		11:  # buildings block, at their base
+			if _frame >= _deadline:
+				Input.action_release(&"move_up")
+				var inn_base := (_town.get_node("Objects/Inn") as Node2D).global_position.y
+				if _player.global_position.y < inn_base - 1.0:
+					_fail("walked into the inn (y=%s, base=%s)" % [_player.global_position.y, inn_base])
+					return
+				print("ok: the inn's front wall stops the player")
 				_player.global_position = (_town.get_node("Locations/TidePools") as Node2D).global_position
 				_set_phase(2, 30)
 		2:  # entering the tide pools is a discovery
 			if _discoveries.has(&"tide_pools"):
 				print("ok: tide pools discovered on entry")
-				_player.global_position = Vector2(1300, 200)  # step out...
+				_player.global_position = Vector2(1100, 400)  # step out...
 				_set_phase(3, 20)
 			elif _frame >= _deadline:
 				_fail("tide pools never discovered")

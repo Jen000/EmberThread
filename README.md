@@ -56,12 +56,12 @@ emotion · `4` shimmer preview · `9` toggle reduced sensory mode · `0`
 reset.
 
 **Coastal Town (step 3, in progress):** the game now starts in the town,
-laid out from the map mock with the player arriving on the road by the inn.
-The town scene, shared coastal tileset (terrains + collision), camera
-limits, edge walls and named-place zones are in place; the tiles are still
-to be painted. Until they are, you walk over the mock itself. See
-`scenes/regions/README.md`. The old test room is still there as a
-playground (see that README for how to switch).
+with the player arriving on the road by the inn. It's a first blockout at
+character scale: painted coast, paths, market and cliff from the shared
+coastal tileset (sea and walls block), block-placeholder buildings, camera
+limits, edge walls and named-place zones. See `scenes/regions/README.md`.
+The old test room is still there as a playground (see that README for how
+to switch).
 
 ## Project structure
 
