@@ -260,14 +260,116 @@ Open the JSON in a text editor and read it.
 
 **Goal:** after a load, you're standing where you saved.
 
-- [ ] In `scenes/main/main.gd`, `_arrive()` currently always uses the spawn point. Make it use `GameState.player_position` when that isn't `Vector2.ZERO`.
-- [ ] Apply `GameState.appearance` to the player (`set_appearance` per layer) when it isn't empty.
-- [ ] Choose the region from `GameState.region_id`. With one region, a small dictionary `{ &"coastal": preload(...) }` in main.gd is plenty. Don't build a region registry until there's a second region.
-- [ ] Before saving, something has to copy the player's live position into GameState. Give SaveManager a signal `about_to_save`. Main connects to it and writes `GameState.player_position = _player.global_position`. Saving then never reaches into the scene tree itself.
-- [ ] Running `main.tscn` on its own (F6 in the editor, and the smoke tests) has no slot. When `GameState.slot == -1`, main acts like a fresh new game and nothing saves. That keeps quick testing quick.
+Two files change: `core/save_manager.gd` (one signal) and
+`scenes/main/main.gd` (three small additions). Nothing else.
 
-**Check:** save at the inn door, quit, run, load. You appear at the inn door,
-not the road. Walk around and save again; the JSON's position changes.
+### The idea
+
+Two things have to happen, one on each side of the save:
+
+- **When saving:** GameState has to know where the player is *right now*. The
+  player is a node in the world; GameState is not. So just before a save,
+  SaveManager announces "I'm about to save!" and main.gd, which knows where
+  the player is, copies the position into GameState.
+- **When the world starts:** main.gd already puts the player at the spawn
+  point. It now checks GameState first: if there's a saved position, use
+  that instead.
+
+The announcement is a **signal**: a message a node sends out without knowing
+who's listening. SaveManager sends it; main.gd listens.
+
+### 1. In `core/save_manager.gd`: announce saves
+
+- [ ] Near the top, under the `## Save slots...` comment, declare the signal:
+
+```gdscript
+## Sent just before a save is written, so the world can put its live
+## state (like where the player is standing) into GameState first.
+signal about_to_save
+```
+
+- [ ] Make it the **first line** inside `save_game`, before anything else:
+
+```gdscript
+func save_game(slot: int) -> bool:
+	about_to_save.emit()
+	DirAccess.make_dir_recursive_absolute(save_dir)
+	# ...the rest stays the same
+```
+
+It has to come first so GameState is up to date before `to_dict()` reads it.
+
+### 2. In `scenes/main/main.gd`: listen for it
+
+- [ ] At the very top of `_ready()`, connect to the signal. "Connect" means "when this signal is sent, run this function":
+
+```gdscript
+func _ready() -> void:
+	SaveManager.about_to_save.connect(_remember_position)
+	# ...the rest of _ready stays the same
+```
+
+- [ ] Add the function it runs, at the bottom of the file:
+
+```gdscript
+## Just before a save, copy where the player is standing into GameState.
+func _remember_position() -> void:
+	GameState.player_position = _player.global_position
+```
+
+### 3. In `scenes/main/main.gd`: arrive at the saved position
+
+- [ ] In `_arrive()`, find this line:
+
+```gdscript
+	_player.global_position = target.get_spawn_position()
+```
+
+and replace it with:
+
+```gdscript
+	if GameState.player_position != Vector2.ZERO:
+		_player.global_position = GameState.player_position
+	else:
+		_player.global_position = target.get_spawn_position()
+```
+
+`Vector2.ZERO` is GameState's way of saying "no saved position" (a new game
+starts with it), so a new game still begins on the road.
+
+### 4. Debug keys to test it
+
+- [ ] Add these at the bottom of `main.gd`. F2 saves, F3 loads. They only work in debug builds (when you run from the editor), so players never see them:
+
+```gdscript
+## Debug keys (debug builds only): F2 saves to slot 1, F3 loads it.
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not OS.is_debug_build():
+		return
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return
+	if key.physical_keycode == KEY_F2:
+		GameState.slot = 0
+		print("saved: ", SaveManager.save_game(0))
+	elif key.physical_keycode == KEY_F3:
+		if SaveManager.load_game(0):
+			get_tree().reload_current_scene()
+```
+
+`load_game` only fills GameState. `reload_current_scene()` restarts the world,
+so `_arrive()` runs again and reads the loaded position. That's the same
+thing the pause screen's Load will do in step 9.
+
+**Check:**
+1. Run the game (F5 in the Godot editor).
+2. Walk to the inn door. Press **F2**. The Output panel says `saved: true`.
+3. Walk somewhere else, like the harbour. Press **F3**. You jump back to the inn door.
+4. Close the game, run it again, press **F3**. You're at the inn door again: it came from the file.
+
+**Left for later, on purpose:**
+- *Appearance:* nothing chooses an appearance until the character creator exists, so there's nothing to restore yet.
+- *Choosing the region from `GameState.region_id`:* there's only one region. Add it when the second region is built.
 
 ---
 
