@@ -53,6 +53,7 @@ px, so as a rule of thumb:
 | Harbour master's office | 80×64 px (5×4 tiles) |
 | Inn | 144×96 px (9×6 tiles) |
 | Lighthouse | 48×112 px (3×7 tiles) |
+| Old fishing boat | 64×32 px (4×2 tiles) |
 | Tree (stand-in) | 24×40 px |
 
 Building sizes are locked in `docs/art-pipeline.md` §1. Keep new ones to

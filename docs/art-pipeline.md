@@ -22,6 +22,7 @@ All dimensions, frame counts, naming, and formats below are taken from the Art B
 | Harbour master's office | 80×64 (5×4 tiles) |
 | Inn | 144×96 (9×6 tiles) |
 | Lighthouse | 48×112 (3×7 tiles) |
+| Old fishing boat | 64×32 (4×2 tiles) |
 | Dialogue portraits (all characters incl. player) | 64×64 |
 | Journal page illustrations | 96×96 or larger |
 | Map | 480×270 |
