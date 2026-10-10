@@ -55,6 +55,14 @@ in the room's north-east corner and Pip notices, glows green, and leads.
 emotion · `4` shimmer preview · `9` toggle reduced sensory mode · `0`
 reset.
 
+**Coastal Town (step 3, in progress):** the game now starts in the town,
+laid out from the map mock with the player arriving on the road by the inn.
+The town scene, shared coastal tileset (terrains + collision), camera
+limits, edge walls and named-place zones are in place; the tiles are still
+to be painted. Until they are, you walk over the mock itself. See
+`scenes/regions/README.md`. The old test room is still there as a
+playground (see that README for how to switch).
+
 ## Project structure
 
 ```
@@ -63,6 +71,7 @@ assets/        locked asset tree (art-pipeline.md §3) — stand-ins live at
 core/          the pipeline seams: AssetRegistry, SoundManager, MusicManager
 docs/          source-of-truth documents
 scenes/        one folder per feature; scene + script + README together
+               (scenes/regions/ holds the explorable regions)
 tools/         make_placeholders.py — regenerates block stand-ins + manifest
 ```
 

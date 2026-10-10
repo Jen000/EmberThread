@@ -19,6 +19,7 @@ var _reached := false
 
 func _ready() -> void:
 	var main: Node = load("res://scenes/main/main.tscn").instantiate()
+	main.region_scene = load("res://scenes/main/test_room.tscn")  # the playground
 	add_child(main)
 	_pip = main.get_node("Pip")
 	_player = main.get_node("Player")

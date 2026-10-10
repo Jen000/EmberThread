@@ -1,0 +1,96 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scenes/regions/coastal/coastal_town.gd" id="1_town"]
+[ext_resource type="Script" path="res://scenes/regions/mock_guide.gd" id="2_guide"]
+[ext_resource type="Texture2D" path="res://assets/map/map_coastal.png" id="3_mock"]
+[ext_resource type="TileSet" path="res://assets/tilesets/coastal/coastal_tileset.tres" id="4_tiles"]
+[ext_resource type="Script" path="res://scenes/regions/location_zone.gd" id="5_zone"]
+[ext_resource type="Script" path="res://scenes/interactable/interactable.gd" id="6_interactable"]
+
+[node name="CoastalTown" type="Node2D"]
+y_sort_enabled = true
+script = ExtResource("1_town")
+region_id = &"coastal"
+bounds = Rect2i(0, 0, 1440, 810)
+
+[node name="MockGuide" type="Sprite2D" parent="."]
+modulate = Color(1, 1, 1, 0.35)
+z_index = 100
+scale = Vector2(3, 3)
+texture = ExtResource("3_mock")
+centered = false
+script = ExtResource("2_guide")
+
+[node name="Ground" type="TileMapLayer" parent="."]
+z_index = -10
+tile_set = ExtResource("4_tiles")
+
+[node name="Paths" type="TileMapLayer" parent="."]
+z_index = -9
+tile_set = ExtResource("4_tiles")
+
+[node name="Obstacles" type="TileMapLayer" parent="."]
+z_index = -8
+tile_set = ExtResource("4_tiles")
+
+[node name="Objects" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="HarbourExit" type="Area2D" parent="Objects"]
+position = Vector2(708, 744)
+script = ExtResource("6_interactable")
+prompt_verb = "Look"
+
+[node name="AbovePlayer" type="TileMapLayer" parent="."]
+z_index = 10
+tile_set = ExtResource("4_tiles")
+collision_enabled = false
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="default" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(1398, 450)
+
+[node name="Locations" type="Node2D" parent="."]
+
+[node name="Inn" type="Area2D" parent="Locations"]
+position = Vector2(1173, 385)
+script = ExtResource("5_zone")
+location_id = &"inn"
+display_name = "The Inn"
+size = Vector2(96, 72)
+
+[node name="Market" type="Area2D" parent="Locations"]
+position = Vector2(966, 450)
+script = ExtResource("5_zone")
+location_id = &"market"
+display_name = "Market Square"
+size = Vector2(190, 150)
+
+[node name="TidePools" type="Area2D" parent="Locations"]
+position = Vector2(480, 408)
+script = ExtResource("5_zone")
+location_id = &"tide_pools"
+display_name = "Tide Pools"
+size = Vector2(120, 96)
+
+[node name="CliffLookout" type="Area2D" parent="Locations"]
+position = Vector2(594, 96)
+script = ExtResource("5_zone")
+location_id = &"cliff_lookout"
+display_name = "Cliff Lookout"
+size = Vector2(120, 90)
+
+[node name="Lighthouse" type="Area2D" parent="Locations"]
+position = Vector2(200, 190)
+script = ExtResource("5_zone")
+location_id = &"lighthouse"
+display_name = "The Lighthouse"
+size = Vector2(120, 90)
+
+[node name="Harbour" type="Area2D" parent="Locations"]
+position = Vector2(720, 640)
+script = ExtResource("5_zone")
+location_id = &"harbour"
+display_name = "The Harbour"
+size = Vector2(220, 100)
