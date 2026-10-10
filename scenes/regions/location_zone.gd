@@ -17,6 +17,10 @@ signal player_entered(zone: LocationZone)
 ## its own collision shape child.
 @export var size := Vector2(96, 64)
 
+## True when the scene gave this zone its own collision shape, so `size`
+## doesn't describe it and the inside-check below is skipped.
+var _uses_own_shape := false
+
 
 func _ready() -> void:
 	# Watches for the player; nothing needs to detect the zone itself.
@@ -29,14 +33,26 @@ func _ready() -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
-	if body.is_in_group(&"player"):
+	if not body.is_in_group(&"player"):
+		return
+	# Godot can report an overlap from where the player WAS a moment ago:
+	# Main places the player at the spawn point (or a loaded position) right
+	# after the region appears, and the first physics step still sees the
+	# old spot. Only count it if the player is really inside the zone now.
+	if _uses_own_shape or _rect().has_point(body.global_position):
 		player_entered.emit(self)
+
+
+## The zone's area in world coordinates, built from `size`.
+func _rect() -> Rect2:
+	return Rect2(global_position - size / 2.0, size)
 
 
 ## An Area2D with no shape silently never triggers; build one from `size`.
 func _ensure_shape() -> void:
 	for child in get_children():
 		if child is CollisionShape2D or child is CollisionPolygon2D:
+			_uses_own_shape = true
 			return
 	var rect := RectangleShape2D.new()
 	rect.size = size
