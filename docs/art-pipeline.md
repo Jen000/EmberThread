@@ -17,10 +17,17 @@ All dimensions, frame counts, naming, and formats below are taken from the Art B
 | Ground tiles | 16×16 |
 | Objects / items | 16×16 |
 | Larger objects (mosaic, armour) | 32×32 |
+| Market stall | 32×32 (2×2 tiles) |
+| Cottage (incl. Sable's, the elderly couple's) | 64×64 (4×4 tiles) |
+| Harbour master's office | 80×64 (5×4 tiles) |
+| Inn | 144×96 (9×6 tiles) |
+| Lighthouse | 48×112 (3×7 tiles) |
 | Dialogue portraits (all characters incl. player) | 64×64 |
 | Journal page illustrations | 96×96 or larger |
 | Map | 480×270 |
 | UI elements | Flexible (build at intended display size) |
+
+Building sizes are the full sprite, roof included, standing on its base. Buildings are multi-tile on purpose: the 32×32 "larger objects" size is for props like the mosaic and armour, and a 32×32 house would be only one character wide. Keep building sizes multiples of 16 so they sit on the tile grid. Other regions' buildings get sized the same way when those regions are built.
 
 **Frame counts**
 

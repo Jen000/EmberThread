@@ -14,7 +14,7 @@ extends StaticBody2D
 ## border and a baked-in label, so it can't pass for finished art. Replace
 ## with a Sprite2D + the same collision when building art lands.
 
-@export var size := Vector2(64, 56):
+@export var size := Vector2(64, 64):  # a cottage
 	set(value):
 		size = value
 		_refresh()

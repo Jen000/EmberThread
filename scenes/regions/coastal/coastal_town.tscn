@@ -33,7 +33,7 @@ y_sort_enabled = true
 [node name="Inn" type="StaticBody2D" parent="Objects" unique_id=1978542160]
 position = Vector2(928, 288)
 script = ExtResource("2_elnnq")
-size = Vector2(144, 88)
+size = Vector2(144, 96)
 label = "INN"
 
 [node name="InnNoticeboard" type="StaticBody2D" parent="Objects" unique_id=1887101514]
@@ -47,7 +47,7 @@ solid_fraction = 0.4
 [node name="Lighthouse" type="StaticBody2D" parent="Objects" unique_id=511874921]
 position = Vector2(88, 152)
 script = ExtResource("2_elnnq")
-size = Vector2(40, 104)
+size = Vector2(48, 112)
 label = "LIGHT"
 roof_colour = Color(0.72, 0.2, 0.19, 1)
 solid_fraction = 0.3
@@ -68,25 +68,21 @@ solid_fraction = 1.0
 [node name="CottageNorth" type="StaticBody2D" parent="Objects" unique_id=422410635]
 position = Vector2(616, 240)
 script = ExtResource("2_elnnq")
-size = Vector2(72, 64)
 label = "HOME"
 
 [node name="CottageInn" type="StaticBody2D" parent="Objects" unique_id=90013441]
 position = Vector2(760, 240)
 script = ExtResource("2_elnnq")
-size = Vector2(72, 64)
 label = "HOME"
 
 [node name="CottageSouth" type="StaticBody2D" parent="Objects" unique_id=516087473]
 position = Vector2(552, 560)
 script = ExtResource("2_elnnq")
-size = Vector2(72, 64)
 label = "HOME"
 
 [node name="CoupleCottage" type="StaticBody2D" parent="Objects" unique_id=158104953]
 position = Vector2(1024, 512)
 script = ExtResource("2_elnnq")
-size = Vector2(80, 64)
 label = "COUPLE"
 
 [node name="HarbourMaster" type="StaticBody2D" parent="Objects" unique_id=1416783063]
@@ -99,28 +95,28 @@ roof_colour = Color(0.27, 0.3, 0.42, 1)
 [node name="StallNW" type="StaticBody2D" parent="Objects" unique_id=1711799589]
 position = Vector2(560, 328)
 script = ExtResource("2_elnnq")
-size = Vector2(32, 28)
+size = Vector2(32, 32)
 label = "STALL"
 roof_colour = Color(0.75, 0.2, 0.2, 1)
 
 [node name="StallNE" type="StaticBody2D" parent="Objects" unique_id=1927787394]
 position = Vector2(664, 328)
 script = ExtResource("2_elnnq")
-size = Vector2(32, 28)
+size = Vector2(32, 32)
 label = "STALL"
 roof_colour = Color(0.35, 0.5, 0.7, 1)
 
 [node name="StallSW" type="StaticBody2D" parent="Objects" unique_id=131628936]
 position = Vector2(560, 432)
 script = ExtResource("2_elnnq")
-size = Vector2(32, 28)
+size = Vector2(32, 32)
 label = "STALL"
 roof_colour = Color(0.35, 0.5, 0.7, 1)
 
 [node name="StallSE" type="StaticBody2D" parent="Objects" unique_id=859171717]
 position = Vector2(680, 432)
 script = ExtResource("2_elnnq")
-size = Vector2(32, 28)
+size = Vector2(32, 32)
 label = "STALL"
 roof_colour = Color(0.75, 0.2, 0.2, 1)
 

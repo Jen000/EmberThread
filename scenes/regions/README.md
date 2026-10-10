@@ -48,11 +48,15 @@ px, so as a rule of thumb:
 |---|---|
 | Road | 3 tiles wide (48 px) |
 | Side path | 2 tiles |
-| Cottage | 72×64 px (about 4×4 tiles) |
-| Inn | 144×88 px |
-| Lighthouse | 40×104 px |
-| Market stall | 32×28 px |
-| Tree | 24×40 px |
+| Market stall | 32×32 px (2×2 tiles) |
+| Cottage | 64×64 px (4×4 tiles) |
+| Harbour master's office | 80×64 px (5×4 tiles) |
+| Inn | 144×96 px (9×6 tiles) |
+| Lighthouse | 48×112 px (3×7 tiles) |
+| Tree (stand-in) | 24×40 px |
+
+Building sizes are locked in `docs/art-pipeline.md` §1. Keep new ones to
+multiples of 16 so they sit on the tile grid.
 
 The map mocks in `assets/map/` show **where** things are, not how big they
 are. Never trace them 1:1, and never use them as ground.
