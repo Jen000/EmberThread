@@ -41,7 +41,7 @@ The game is a love letter to patience, difference, and the quiet power of showin
 - **Sound:** Optional and ambient — all meaning conveyed visually. Sound enriches but never gates
 - **Input:** Full keyboard, mouse, and controller support
 - **Platform target:** Steam
-- **Save system:** Autosave at key moments (region transitions, completed mends, NPC interactions) plus manual save at inn rest spots
+- **Save system:** Autosave at key moments (region transitions, completed mends, NPC interactions, new places discovered) plus manual save and load from the pause menu at any time. Three save slots. Resting at an inn can also save, as an optional in-world moment
 - **Camera:** Top-down, follows the player smoothly
 
 ---

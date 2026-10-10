@@ -35,8 +35,9 @@ The first four I'd answer a particular way. The last two are yours.
 **Where can you save?** *(Decided.)* **Anywhere, from the pause screen,**
 plus autosave at the key moments the design doc names. The pause screen also
 has **Load**, so you can go back to a save without quitting to the title.
-This replaces the design doc's "manual save at inn rest spots": update the
-GDD's save section to match. Resting at the inn can still save as a nice
+This replaces the design doc's original "manual save at inn rest spots";
+the GDD and the Fable prompt are updated to match. Resting at the inn can
+still save as a nice
 moment in the world, but it's optional now (step 6).
 
 **How many slots, and what's in one?** **Three slots, one file each.**
