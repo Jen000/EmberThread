@@ -45,6 +45,26 @@ Lay this one out vertically: market + inn at the base → winding steps → shri
 **4 · Castle Ruins.** In: the pilgrim trail, through the gatehouse. Out: none (climax).
 Gatehouse → courtyard garden (hub) → throne room (Wren) deepest in. The battlements go up, facing west toward the other regions. The tunnels go down; keep their entrance visible, since the children leave offerings there on the return. Energy-neutralisation zones guard the deeper rooms.
 
+### Coastal Town map mock
+
+![Coastal Town map mock](../assets/map/map_coastal.png)
+
+**`assets/map/map_coastal.png`** is the region-level journal map for the Coastal Town (480×270, registry key `map_coastal`). Like the world map, it's a layout mock; the artist draws the final one. It's also the reference for building the town's tilemap. It shows **where things sit and how they connect, not tile scale**: walking distances are relative, so confirm them in the engine.
+
+| Place | Where | Why it sits there |
+|---|---|---|
+| Road in | East edge, red marker | Arrival from Moss's. The ash mark just inside it is where Pip is found. |
+| Inn | First building on the road | Save spot. Its noticeboard (out front) is where the ending pins the journal copy. |
+| Market square | Centre, cobbled | Stalls, a well, and the guild's decree board (purple posters). Site of the social-overwhelm moment. |
+| Tide pools | Beach under the cliff, a short path west of the market | Where the player guides an overwhelmed Pip: close to the market, but quiet and out of sight. |
+| Cliff stairs → cliff top | North of the market | The high ground holds the lookout and the path to the lighthouse. |
+| Cliff lookout | North edge of the cliffs | Bench and telescope looking out to sea. |
+| Lighthouse | Headland tip, west | Sable's lighthouse and cottage. Its beam crosses the water toward the harbour. |
+| Harbour | South shore | Quay, pier and the old fishing boat (exit, red marker). The harbour master's office has the dark roof. |
+| Cottages | Around the square | One south-east, with a garden, for the elderly couple. |
+
+**People, by place:** Sable at the lighthouse; the fisherman on the pier; the harbour master at his office; the sketch artist at the cliff lookout; the child near the harbour (carved boat); the elderly couple in the garden cottage; the guild NPC by the decree board in the market.
+
 ## Open questions
 
 - **Coastal market:** the overwhelm moment needs a market, but GDD §6 doesn't list one for the coast. The mock adds one.
