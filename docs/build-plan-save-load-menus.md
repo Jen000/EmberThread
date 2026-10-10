@@ -375,25 +375,173 @@ thing the pause screen's Load will do in step 9.
 
 ## Step 6: Autosave and the save icon
 
-**Goal:** the game saves itself at key moments, and shows it.
+**Goal:** the game saves itself at key moments, and a small icon in the lower
+right corner shows when it does.
 
-- [ ] `SaveManager.autosave(reason: String)`: if a slot is active, `save_game(GameState.slot)`. The reason is only for the debug print ("autosave: dialogue finished"). It makes testing far easier.
-- [ ] Hook the triggers that exist today:
-  - **Arriving in a region:** end of `main._arrive()`, but not when arriving *from* a load (that would save the moment you loaded).
-  - **Finishing a conversation:** `Dialogue.finished` (the signal already exists).
-  - **A new place discovered:** `Region.location_discovered`.
-  - **Completing a mend:** later, when `MendScreen` gets a `completed` signal. Leave a `# TODO(autosave)` comment there.
-- [ ] Throttle it: skip an autosave if the last one was under ~10 seconds ago, so three triggers in a row don't write three files.
-- [ ] **The save icon.** New scene `scenes/ui/save_icon.tscn`: a small icon anchored to the **lower right corner**, in `main.tscn` under `UI`. SaveManager emits `saving` and `saved`; the icon shows on the first and fades out about a second after the second.
-  - Its art goes through `AssetRegistry` like everything else: a block placeholder now (`ui_save_icon.png`, 16×16, magenta-marked per the art pipeline), the artist's icon later with no code change.
-  - The icon must read by **shape**, not colour alone.
-  - Under `Settings.reduced_sensory` it doesn't spin or pulse. It appears, stays steady, then fades.
-  - It's information only. Missing it costs nothing, so it never needs dismissing.
-- [ ] The pause screen's Save (step 8) shows the same icon, so saving always looks the same.
+Three parts: an `autosave` function in SaveManager, three places in main.gd
+that call it, and a small scene for the icon. The icon's placeholder art is
+already in the project: `assets/ui/ui_save_icon.png` (an arrow dropping into
+a tray, with the magenta placeholder border).
 
-**Check:** talk to the fisherman. The icon appears in the corner after the
-conversation. Quit without saving and load the slot: the JSON's `saved_at`
-is from after the conversation.
+### The idea
+
+`save_game` already does the saving. `autosave` is a careful wrapper around
+it that says *no* in two situations:
+- **No playthrough is running** (`GameState.slot` is `-1`, like when you run
+  `main.tscn` on its own). There's nowhere to save to.
+- **The last autosave was under 10 seconds ago.** Discovering a place right
+  after finishing a conversation shouldn't write the file twice.
+
+The icon doesn't need to know about autosave at all. It listens to the
+`about_to_save` signal you added in step 5, so it shows for *every* save:
+autosave, the pause screen's Save, and the inn later.
+
+### 1. In `core/save_manager.gd`: the autosave function
+
+- [ ] Add this at the bottom:
+
+```gdscript
+## Shortest time between two autosaves, in milliseconds (10 seconds).
+const AUTOSAVE_GAP_MS := 10000
+## When the last autosave happened. Starts far in the past so the first
+## autosave is never skipped.
+var _last_autosave_ms := -AUTOSAVE_GAP_MS
+
+
+## Save automatically, if a playthrough is running and the last autosave
+## wasn't moments ago. `reason` only goes in the Output panel, for testing.
+func autosave(reason: String) -> void:
+	if GameState.slot == -1:
+		return
+	var now := Time.get_ticks_msec()
+	if now - _last_autosave_ms < AUTOSAVE_GAP_MS:
+		return
+	_last_autosave_ms = now
+	print("autosave: ", reason)
+	save_game(GameState.slot)
+```
+
+`Time.get_ticks_msec()` is how many milliseconds the game has been running.
+Subtracting the last autosave's time from it gives "how long ago was that".
+
+### 2. In `scenes/main/main.gd`: call it at three moments
+
+**Finishing a conversation.** The dialogue box already sends a `finished`
+signal when a conversation closes. Listen to it:
+
+- [ ] In `_ready()`, just above the line `if region is Region:`, add:
+
+```gdscript
+	Dialogue.finished.connect(_on_dialogue_finished)
+```
+
+**Discovering a place.** The region sends `location_discovered`.
+
+- [ ] Inside that same `if region is Region:` block, *above* the `_arrive(...)` line, add:
+
+```gdscript
+		(region as Region).location_discovered.connect(_on_location_discovered)
+```
+
+(Two tabs at the start, because it's inside the `if`.)
+
+**Arriving in a region.** Only when arriving fresh at the spawn point, not
+after a load (saving the instant you load would be pointless).
+
+- [ ] In `_arrive()`, in the `else:` branch you wrote in step 5, add the autosave line under the spawn line:
+
+```gdscript
+	else:
+		_player.global_position = target.get_spawn_position()
+		SaveManager.autosave("arrived in a region")
+```
+
+- [ ] Then add the two functions the signals run, at the bottom of main.gd:
+
+```gdscript
+func _on_dialogue_finished() -> void:
+	SaveManager.autosave("conversation finished")
+
+
+func _on_location_discovered(_location_id: StringName) -> void:
+	SaveManager.autosave("new place discovered")
+```
+
+The `_` at the start of `_location_id` tells Godot "I know this function is
+given a value I'm not using". Without it, you'd get a yellow warning.
+
+**Completing a mend** autosaves too, but mending isn't built yet. Open
+`scenes/ui/mend_screen.gd` and leave a note at the top so it isn't forgotten:
+
+```gdscript
+# TODO(autosave): when a mend completes, call SaveManager.autosave("mend completed")
+```
+
+### 3. The save icon scene
+
+This is built in the Godot editor, not typed. In order:
+
+- [ ] **Scene → New Scene.** In the Scene panel, choose **Other Node** and pick **CanvasLayer**. Rename it `SaveIcon` (double-click the name).
+  *A CanvasLayer draws on top of the world and doesn't move with the camera. It's how anything stays fixed to a screen corner.*
+- [ ] With `SaveIcon` selected, in the **Inspector**:
+  - **Layer** → `10` (above the world and the other screen text).
+  - **Process → Mode** → `Always` (so the icon still fades out while the game is paused, for example after the pause screen's Save).
+- [ ] Right-click `SaveIcon` → **Add Child Node** → **TextureRect**. Rename it `Icon`.
+- [ ] With `Icon` selected:
+  - In the toolbar above the 2D view, open the **anchor menu** (the green cross-shaped icon) and choose **Bottom Right**.
+  - In the Inspector, under **Layout → Transform**, set **Size** to `16 × 16` and **Position** to `458 × 248`. That's 6 pixels in from the right and bottom of the 480×270 screen.
+  - Leave **Texture** empty. The script fills it in through the asset registry, so the artist's icon replaces the placeholder later with no code change.
+- [ ] Save the scene as `scenes/ui/save_icon.tscn`.
+- [ ] Right-click `SaveIcon` → **Attach Script**. Save it as `scenes/ui/save_icon.gd`, and replace what's in it with:
+
+```gdscript
+extends CanvasLayer
+## The save icon: appears in the lower right corner whenever the game saves,
+## then fades away. Information only — nothing to press or dismiss.
+
+## How long the icon stays fully visible, in seconds.
+const SHOW_TIME := 1.0
+## How long it takes to fade out, in seconds.
+const FADE_TIME := 0.5
+
+@onready var _icon: TextureRect = $Icon
+var _tween: Tween
+
+
+func _ready() -> void:
+	_icon.texture = AssetRegistry.get_sprite("ui_save_icon")
+	_icon.hide()
+	SaveManager.about_to_save.connect(_show_icon)
+
+
+func _show_icon() -> void:
+	if _tween != null:
+		_tween.kill()  # a second save while the icon is up starts it over
+	_icon.modulate.a = 1.0
+	_icon.show()
+	_tween = create_tween()
+	_tween.tween_interval(SHOW_TIME)
+	if not Settings.reduced_sensory:
+		_tween.tween_property(_icon, "modulate:a", 0.0, FADE_TIME)
+	_tween.tween_callback(_icon.hide)
+```
+
+A **tween** is a small timeline you build in code: "wait 1 second, then fade
+out over half a second, then hide". `modulate.a` is the icon's see-through
+amount (1 = solid, 0 = invisible). Under reduced sensory mode there's no
+fade: the icon just appears, waits, and goes.
+
+- [ ] Put the icon in the world: open `scenes/main/main.tscn`, then drag `save_icon.tscn` from the FileSystem panel onto the **Main** node in the Scene panel. Save.
+
+**Check:**
+1. Run `main.tscn` with F5. Nothing saves on its own yet, because there's no slot (that comes with the slot screen). Press **F2** (your step 5 debug save): the icon appears in the lower right corner, then fades.
+2. Talk to the fisherman, wait over 10 seconds, then walk into the tide pools. The Output panel shows `autosave: new place discovered` and the icon appears.
+3. Talk to the fisherman again and finish the conversation (more than 10 seconds after the last save). The Output panel shows `autosave: conversation finished`.
+4. Close the game without saving, run it, press **F3**. You're where the last autosave happened.
+5. Turn on reduced sensory (temporarily set `reduced_sensory := true` in settings.gd), press F2: the icon appears and disappears without fading. Set it back afterwards.
+
+Why doesn't check 2 autosave right after F2? Because of the 10-second gap.
+F2 counts as a save too. That's the throttle doing its job.
 
 ---
 

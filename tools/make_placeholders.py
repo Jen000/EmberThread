@@ -258,6 +258,29 @@ def pip_files():
     return files
 
 
+# --- UI stand-ins -------------------------------------------------------------
+# The save icon (lower-right corner while saving). It must read by SHAPE,
+# not colour alone: an arrow dropping into a tray, in ink on white, inside
+# the magenta placeholder border.
+
+def save_icon():
+    canvas = blank(16, 16)
+    rect(canvas, 0, 0, 15, 15, MAGENTA)          # placeholder border
+    rect(canvas, 2, 2, 13, 13, WHITE)
+    rect(canvas, 7, 3, 8, 7, INK)                # arrow shaft
+    rect(canvas, 5, 7, 10, 7, INK)               # arrow head, narrowing
+    rect(canvas, 6, 8, 9, 8, INK)
+    rect(canvas, 7, 9, 8, 9, INK)
+    rect(canvas, 3, 10, 3, 12, INK)              # tray it drops into
+    rect(canvas, 12, 10, 12, 12, INK)
+    rect(canvas, 3, 12, 12, 12, INK)
+    return canvas
+
+
+def ui_files():
+    return {"ui/ui_save_icon.png": save_icon()}
+
+
 # --- output ----------------------------------------------------------------
 
 def ensure_tree() -> None:
@@ -297,6 +320,7 @@ def main() -> None:
     files = {}
     files.update(player_files())
     files.update(pip_files())
+    files.update(ui_files())
 
     manifest = {}
     for rel, canvas in sorted(files.items()):
