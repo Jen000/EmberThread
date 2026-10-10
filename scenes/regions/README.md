@@ -122,7 +122,8 @@ Things to know about the stand-in sheets:
   stand-in problem. The artist's sheets should share one sand and one grass.
 - The artist's sheets must keep the same layout (same tile in the same
   place). The terrain and collision setup is per tile position, so it then
-  carries over with zero edits.
+  carries over with zero edits. The full spec for the artist, with a layout
+  guide, is `docs/art-pipeline.md` §11.
 
 ## How to add a named place
 
