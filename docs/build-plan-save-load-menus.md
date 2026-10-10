@@ -179,6 +179,7 @@ passes, because discovery behaves exactly as before; it just lives elsewhere.
 - [ ] Two path helpers: `save_path(slot)` → `save_dir + "slot_%d.json"`, and `settings_path(slot)` → `save_dir + "slot_%d.settings.cfg"`.
 - [ ] `slot_info(slot) -> Dictionary`: what the slot screen shows (region, playtime, when saved), or `{}` for an empty slot, or `{ "broken": true }` for a file that can't be read.
 - [ ] `delete_slot(slot)`: removes **both** files. Deleting a slot removes that player completely, settings included.
+- [ ] `save_settings(slot)`: makes sure the saves folder exists (`DirAccess.make_dir_recursive_absolute(save_dir)`), then `Settings.save_to(settings_path(slot))`. **Always save a slot's settings through this, never `Settings.save_to` directly.** On a fresh computer the folder doesn't exist yet, and `ConfigFile.save` fails silently without it, so the settings would quietly never be written.
 
 **Check:** a temporary debug print of `slot_info(0)` says the slot is empty.
 
@@ -361,7 +362,7 @@ the game keeps running and tells you.
   Each control sets the `Settings` field directly, so text resizes live as the slider moves. That's the best possible preview.
 - [ ] Each row has a short, plain description under it ("Softens flashing and pulsing, including Pip's glow."). People can't choose a setting they don't understand.
 - [ ] A Back button, and `ui_cancel` = Back. On close, save the settings, then hide and give focus back to the button that opened it:
-  - **In the world** (a slot is active): `Settings.save_to(SaveManager.settings_path(GameState.slot))`. This is remembered even though quitting doesn't save progress.
+  - **In the world** (a slot is active): `SaveManager.save_settings(GameState.slot)`. This is remembered even though quitting doesn't save progress.
   - **Always** also `Settings.save_to(Settings.LAST_USED)`, so the title screen opens with these settings next time.
 - [ ] The screen's own text uses `BASE_FONT_SIZE × Settings.text_scale`, like the dialogue box, so the settings screen is readable at the size the player needs.
 - [ ] Leave a visible "Controls: coming soon" row. Remappable controls are required by the design doc and deserve their own plan; don't build them inside this one.
@@ -397,7 +398,7 @@ and a controller button moves on. Wiggling the mouse doesn't.
 - [ ] **A slot with a save:** `SaveManager.load_game(slot)`, then change scene to `main.tscn`. The player's settings apply as it loads.
 - [ ] **An empty slot (New Game):** a brand new player.
   1. `GameState.reset()`, then `GameState.slot = chosen`.
-  2. The new player's settings are the ones on screen right now: `Settings.save_to(SaveManager.settings_path(chosen))`.
+  2. The new player's settings are the ones on screen right now: `SaveManager.save_settings(chosen)`.
   3. Leave the marked spot for the character creator:
 
      ```gdscript
@@ -480,6 +481,7 @@ save → load → settings → quit to title → continue) three times:
 | Discoveries don't survive a load | `region_id` key came back as `String` but is looked up as `StringName` (or the other way round) |
 | A failed load leaves the game half-changed | `load_game` wrote into GameState before the file had finished parsing; parse first, then copy |
 | One player's settings show up in another's slot | Settings saved only to `LAST_USED`, not to the slot's own settings file |
+| A slot's settings are never remembered | Saved with `Settings.save_to` before the saves folder existed; use `SaveManager.save_settings` |
 | Tests wipe your saves | The tests use the real `user://saves/`; set `save_dir` to a test folder |
 
 ## Where to ask for help
