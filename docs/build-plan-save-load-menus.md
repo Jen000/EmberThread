@@ -385,12 +385,15 @@ a tray, with the magenta placeholder border).
 
 ### The idea
 
-`save_game` already does the saving. `autosave` is a careful wrapper around
-it that says *no* in two situations:
-- **No playthrough is running** (`GameState.slot` is `-1`, like when you run
-  `main.tscn` on its own). There's nowhere to save to.
-- **The last autosave was under 10 seconds ago.** Discovering a place right
-  after finishing a conversation shouldn't write the file twice.
+`save_game` already does the saving. `autosave` is a small wrapper around it
+that says *no* in one situation: **no playthrough is running**
+(`GameState.slot` is `-1`, like when you run `main.tscn` on its own), so
+there's nowhere to save to.
+
+Two autosaves close together (finishing a conversation, then stepping into
+a new place) both save. That's on purpose: a save is a tiny file and takes
+about a millisecond, and since quitting doesn't save, skipping one could
+lose progress.
 
 The icon doesn't need to know about autosave at all. It listens to the
 `about_to_save` signal you added in step 5, so it shows for *every* save:
@@ -401,28 +404,14 @@ autosave, the pause screen's Save, and the inn later.
 - [ ] Add this at the bottom:
 
 ```gdscript
-## Shortest time between two autosaves, in milliseconds (10 seconds).
-const AUTOSAVE_GAP_MS := 10000
-## When the last autosave happened. Starts far in the past so the first
-## autosave is never skipped.
-var _last_autosave_ms := -AUTOSAVE_GAP_MS
-
-
-## Save automatically, if a playthrough is running and the last autosave
-## wasn't moments ago. `reason` only goes in the Output panel, for testing.
+## Save automatically, if a playthrough is running.
+## `reason` only goes in the Output panel, for testing.
 func autosave(reason: String) -> void:
 	if GameState.slot == -1:
 		return
-	var now := Time.get_ticks_msec()
-	if now - _last_autosave_ms < AUTOSAVE_GAP_MS:
-		return
-	_last_autosave_ms = now
 	print("autosave: ", reason)
 	save_game(GameState.slot)
 ```
-
-`Time.get_ticks_msec()` is how many milliseconds the game has been running.
-Subtracting the last autosave's time from it gives "how long ago was that".
 
 ### 2. In `scenes/main/main.gd`: call it at three moments
 
@@ -535,13 +524,10 @@ fade: the icon just appears, waits, and goes.
 
 **Check:**
 1. Run `main.tscn` with F5. Nothing saves on its own yet, because there's no slot (that comes with the slot screen). Press **F2** (your step 5 debug save): the icon appears in the lower right corner, then fades.
-2. Talk to the fisherman, wait over 10 seconds, then walk into the tide pools. The Output panel shows `autosave: new place discovered` and the icon appears.
-3. Talk to the fisherman again and finish the conversation (more than 10 seconds after the last save). The Output panel shows `autosave: conversation finished`.
+2. Walk into the tide pools. The Output panel shows `autosave: new place discovered` and the icon appears.
+3. Talk to the fisherman and finish the conversation. The Output panel shows `autosave: conversation finished`.
 4. Close the game without saving, run it, press **F3**. You're where the last autosave happened.
 5. Turn on reduced sensory (temporarily set `reduced_sensory := true` in settings.gd), press F2: the icon appears and disappears without fading. Set it back afterwards.
-
-Why doesn't check 2 autosave right after F2? Because of the 10-second gap.
-F2 counts as a save too. That's the throttle doing its job.
 
 ---
 
