@@ -11,9 +11,9 @@ Where a piece of Godot is easy to get wrong, the step shows the code.
 **What you're making.**
 - The game starts on a **title screen**: Continue, New Game, Load, Settings, Quit.
 - Pressing **Esc / Start** in the world opens a **pause screen**: Resume,
-  Settings, Quit to Title.
+  Save, Load, Settings, Quit to Title.
 - The game **autosaves** at the moments the design doc names, and the player
-  can **rest at the inn** to save by choice.
+  can **save by choice** from the pause screen at any time.
 - **Settings** (text size, text speed, reduced sensory, interaction hints)
   are remembered between sessions, separately from save files.
 
@@ -22,9 +22,9 @@ menu is only buttons that call save and load. With saving built first, every
 button you add later already works the moment you wire it. Each step ends
 with something you can run. Don't move on until its check passes.
 
-**Size.** Steps 1–5 are the save system (about a third of the work). Steps
-6–10 are the screens. Step 11 is the accessibility pass, step 12 tests and
-docs. A step is roughly one sitting.
+**Size.** Steps 1–5 are the save system (about a third of the work). Step 6
+is optional. Steps 7–11 are the screens. Step 12 is the accessibility pass,
+step 13 tests and docs. A step is roughly one sitting.
 
 ---
 
@@ -32,11 +32,12 @@ docs. A step is roughly one sitting.
 
 The first four I'd answer a particular way. The last two are yours.
 
-**Where can you save?** The design doc says *autosave at key moments* and
-*manual save at inn rest spots: the act of resting and saving*. So the pause
-screen has **no Save button**. Saving by choice is something you do in the
-world, at the inn, and that's a nice moment, not a menu chore. Autosave
-covers everything else, so nobody loses progress for not finding an inn.
+**Where can you save?** *(Decided.)* **Anywhere, from the pause screen,**
+plus autosave at the key moments the design doc names. The pause screen also
+has **Load**, so you can go back to a save without quitting to the title.
+This replaces the design doc's "manual save at inn rest spots": update the
+GDD's save section to match. Resting at the inn can still save as a nice
+moment in the world, but it's optional now (step 6).
 
 **How many slots, and what's in one?** **Three slots, one file each.**
 Autosave and inn saves write to the *current* slot. That's how most cozy
@@ -62,7 +63,7 @@ for a game with no fail states.
 **What does New Game do before you can play?** Yours, and it's mostly a
 later system. The design doc says name and pronouns are chosen before
 anything else, then appearance. For now, New Game picks a slot and drops you
-at the road into town. Step 10 leaves a clearly marked place for the
+at the road into town. Step 11 leaves a clearly marked place for the
 character creator to slot in.
 
 ---
@@ -74,6 +75,8 @@ core/settings.gd        (exists)  accessibility flags        -> user://settings.
 core/game_state.gd      (new)     everything about THIS playthrough
 core/save_manager.gd    (new)     GameState <-> user://saves/slot_N.json
 scenes/ui/pause_menu    (new)     Esc in the world
+scenes/ui/slot_list     (new)     the three save slots, used by pause Load,
+                                  title Load and New Game
 scenes/ui/settings_menu (new)     one screen, opened from pause AND title
 scenes/ui/title_screen  (new)     the new main scene
 scenes/main/main.tscn   (exists)  the world; reads GameState when it starts
@@ -105,7 +108,7 @@ in GameState". Nothing else.
 
 Don't save on every `changed` signal: a slider dragged across the screen
 would write the file sixty times a second. The settings screen saves once
-when it closes (step 8).
+when it closes (step 9).
 
 **Check:** temporarily add `text_scale = 1.5; save_settings()` to `_ready()`,
 run once, remove it, run again. The interaction hint should still be big.
@@ -187,6 +190,11 @@ garbage. `load_game` returns `false`, and the load screen shows that slot as
 confused about where their game went. Before overwriting a file you
 couldn't read, copy it to `slot_N.broken.json` so it can be rescued.
 
+**Parse first, then change GameState.** `load_game` reads and checks the
+whole file before it touches GameState. If anything is wrong, it returns
+`false` with GameState exactly as it was. That's what lets the pause
+screen's Load fail without breaking the game you're playing (step 8).
+
 The file looks like this. `version` and `saved_at` go in every save:
 
 ```json
@@ -245,9 +253,11 @@ The JSON's `saved_at` is from after the conversation.
 
 ---
 
-## Step 6: Resting at the inn
+## Step 6 (optional): Resting at the inn
 
-**Goal:** the manual save, done as a moment in the world.
+**Goal:** a save that happens as a moment in the world, alongside the pause
+screen's Save. Skip it if you'd rather keep saving to the menu; nothing
+later depends on it.
 
 - [ ] Add an `Interactable` at the inn door in `coastal_town.tscn` (`prompt_verb = "Rest"`), wired in `coastal_town.gd` like the harbour exit.
 - [ ] On interact: `Dialogue.say("", ["You rest for a while by the fire."])`, `await Dialogue.finished`, `SaveManager.save_game(GameState.slot)`, then `Dialogue.say("", ["Your journey is saved."])`.
@@ -257,25 +267,47 @@ The JSON's `saved_at` is from after the conversation.
 
 ---
 
-## Step 7: Pause screen
+## Step 7: Pause screen, with Save
 
-**Goal:** Esc / Start opens a menu that stops the world.
+**Goal:** Esc / Start opens a menu that stops the world, and Save works from it.
 
-- [ ] New scene `scenes/ui/pause_menu.tscn`: a `CanvasLayer` with a dimmed full-screen `ColorRect` behind a centred `VBoxContainer` holding three `Button`s: Resume, Settings, Quit to Title. Add it to `main.tscn` under `UI`, not as an autoload: there is nothing to pause on the title screen.
+- [ ] New scene `scenes/ui/pause_menu.tscn`: a `CanvasLayer` with a dimmed full-screen `ColorRect` behind a centred `VBoxContainer` holding five `Button`s: Resume, Save, Load, Settings, Quit to Title. Add it to `main.tscn` under `UI`, not as an autoload: there is nothing to pause on the title screen.
 - [ ] **process_mode.** The `CanvasLayer` is *Always*, so it can hear Esc while the world runs. Its menu panel is *When Paused*. The dialogue box README explains why that difference matters.
 - [ ] Open on the `pause` action (already bound to Esc and Start): `get_tree().paused = true`, show, then `$Resume.grab_focus()`. **Without `grab_focus()` a controller or keyboard player can't press anything.**
 - [ ] **Don't open over another paused screen.** If `get_tree().paused` is already true, the dialogue box or mend screen owns the pause, so ignore the key. That's one `if` line, and it saves a whole class of "I unpaused the world while the dialogue was still open" bugs.
 - [ ] Esc / Start / the `ui_cancel` action (B on a controller) while open = Resume.
+- [ ] **Save** calls `SaveManager.save_game(GameState.slot)` and shows the result in a label inside the menu: "Saved." or "Couldn't save. Your last save is still safe." The label stays until the menu closes. Don't make it a toast that vanishes on a timer, because some players need time to read it.
+- [ ] When the game was started without a slot (main.tscn run on its own, step 10), Save has no slot to write to: disable the button.
 - [ ] Quit to Title: autosave (if you chose yes above), `get_tree().paused = false`, then `get_tree().change_scene_to_file("res://scenes/ui/title_screen.tscn")`. **Unpause before changing scene,** or the title screen arrives frozen.
-- [ ] Settings opens the step 8 screen on top. Until step 8 exists, leave the button disabled.
+- [ ] Leave Load and Settings disabled for now. Steps 8 and 9 wire them up.
 
 **Check:** walk, press Esc. Everything stops, including Pip's bob and the
 player's walk animation. Arrow keys move between buttons, Enter presses,
-Esc resumes. Talk to the fisherman and press Esc mid-line: nothing happens.
+Esc resumes. Press Save, see "Saved.", quit the game, run again, load the
+slot: you're where you pressed Save. Talk to the fisherman and press Esc
+mid-line: nothing happens.
 
 ---
 
-## Step 8: Settings screen
+## Step 8: Slot list, and Load from the pause screen
+
+**Goal:** one reusable screen that shows the three slots, used by the pause
+screen's Load now and the title screen later.
+
+- [ ] New scene `scenes/ui/slot_list.tscn` (`process_mode` *Always*, because it opens over a paused game and over the unpaused title screen). Three rows, one per slot, built from `SaveManager.slot_info()`: region name, playtime as hours and minutes, and how long ago it was saved. Empty slots say "Empty". Unreadable slots say "This save couldn't be read".
+- [ ] It works in two modes, set when it opens: **load** (empty slots disabled) and **choose** (for New Game, step 11). It emits `slot_chosen(slot)` or `cancelled`. It doesn't load anything itself, so it stays reusable.
+- [ ] Focus goes to the current slot when opened from the pause screen, otherwise the most recent one. Back and `ui_cancel` close it and return focus to the button that opened it.
+- [ ] **Load from the pause screen** opens it in load mode. Choosing a slot asks first: "Load Slot 2? Anything since your last save will be lost.", with the focus starting on **No**. On yes: `SaveManager.load_game(slot)`, `get_tree().paused = false`, then `get_tree().reload_current_scene()`. Main starts again from the freshly loaded GameState (step 4 already does the rest).
+- [ ] If the load fails, stay in the game and say so in the slot list ("Slot 2 couldn't be read."). The current playthrough is untouched, because `load_game` only changes GameState after the file has parsed successfully. Make sure that's true in your step 3 code.
+
+**Check:** save in slot 1 at the inn door. Walk to the harbour, press Esc,
+Load, slot 1, yes. You're back at the inn door. Do it again and pick No:
+nothing changes. Write garbage into the slot's JSON, then try to load it:
+the game keeps running and tells you.
+
+---
+
+## Step 9: Settings screen
 
 **Goal:** one settings screen, opened from both the pause screen and the title screen.
 
@@ -289,6 +321,7 @@ Esc resumes. Talk to the fisherman and press Esc mid-line: nothing happens.
   Each control sets the `Settings` field directly, so text resizes live as the slider moves. That is the best possible preview.
 - [ ] Each row has a short, plain description under it ("Softens flashing and pulsing, including Pip's glow."). People can't choose a setting they don't understand.
 - [ ] A Back button, and `ui_cancel` = Back. On close: `Settings.save_settings()`, hide, and give focus back to the button that opened it.
+- [ ] Enable the pause screen's Settings button.
 - [ ] The screen's own text uses `BASE_FONT_SIZE × Settings.text_scale`, like the dialogue box, so the settings screen is readable at the size the player needs.
 - [ ] Leave a visible "Controls: coming soon" row. Remappable controls are required by the design doc and deserve their own plan; don't build them inside this one.
 
@@ -298,15 +331,15 @@ already big.
 
 ---
 
-## Step 9: Title screen
+## Step 10: Title screen
 
 **Goal:** the game starts on a menu instead of in the world.
 
 - [ ] New scene `scenes/ui/title_screen.tscn` (a `Control`): the game's name, plus Continue, New Game, Load, Settings, Quit.
 - [ ] Make it the main scene: **Project Settings → Application → Run → Main Scene**.
 - [ ] **Continue** is visible only if `SaveManager.has_any_save()`. It loads `most_recent_slot()` and changes scene to `main.tscn`. When it's visible, it gets focus first, because that's what returning players want.
-- [ ] **Load** opens a slot list: three rows showing region name, playtime as hours and minutes, and how long ago it was saved. Empty slots say "Empty". Unreadable slots say so.
-- [ ] **Delete** on a slot row needs a confirmation that names the slot ("Delete Slot 2: Coastal Town, 1h 12m?"), with the focus starting on **No**.
+- [ ] **Load** opens the step 8 slot list in load mode. On `slot_chosen`: `load_game(slot)`, then change scene to `main.tscn`. There's no "you'll lose progress" question here, since nothing is being played yet.
+- [ ] **Delete** on a slot row (add it to the slot list, shown only from the title screen) needs a confirmation that names the slot ("Delete Slot 2: Coastal Town, 1h 12m?"), with the focus starting on **No**.
 - [ ] **Quit** is `get_tree().quit()`. Hide it on platforms where quitting isn't a thing; on Steam desktop it stays.
 - [ ] Title-screen art is a placeholder for now: flat background, text logo.
 
@@ -321,11 +354,11 @@ with the keyboard alone.
 
 ---
 
-## Step 10: New game
+## Step 11: New game
 
 **Goal:** starting a fresh playthrough in a chosen slot.
 
-- [ ] New Game opens the same slot list as Load, in "choose a slot" mode. Choosing an occupied slot asks before overwriting it.
+- [ ] New Game opens the step 8 slot list in choose mode. Choosing an occupied slot asks before overwriting it.
 - [ ] Then `GameState.reset()`, `GameState.slot = chosen`, and change scene to `main.tscn`. The first autosave (arriving in the region) creates the file.
 - [ ] Leave the marked spot for the character creator:
 
@@ -339,9 +372,9 @@ list shows slot 2 with a playtime of a few seconds. Continue puts you back.
 
 ---
 
-## Step 11: Accessibility pass
+## Step 12: Accessibility pass
 
-Walk the whole flow (title → new game → pause → settings → quit → continue)
+Walk the whole flow (title → new game → pause → save → load → settings → quit → continue)
 three times:
 
 - [ ] **Mouse only.** Every button can be clicked; nothing needs a key.
@@ -349,15 +382,15 @@ three times:
 - [ ] **Controller only**, if you have one. Same as keyboard, with A and B.
 - [ ] **Focus is visible.** The focused button must look different, and not by colour alone: add an outline or a "›" marker. This needs a `Theme` with a `focus` StyleBox; set it once on the title screen and the pause and settings screens can share it.
 - [ ] **Text size 2.0.** Nothing overflows or clips at the biggest setting. Containers, not fixed positions, make this work.
-- [ ] **Nothing is timed.** No menu closes itself, and the saving indicator is information only. Missing it costs nothing.
+- [ ] **Nothing is timed.** No menu closes itself, the pause screen's "Saved." stays until you leave, and the autosave indicator is information only. Missing it costs nothing.
 - [ ] **Reduced sensory:** the saving indicator doesn't pulse, and menus don't slide in.
 
 ---
 
-## Step 12: Tests and docs
+## Step 13: Tests and docs
 
 - [ ] `tests/save_smoke.gd`: save → change GameState → load → fields match. It should also cover a corrupt file (write garbage, `load_game` returns false, nothing crashes) and the Vector2 round trip. **Point it at a test-only folder** (give SaveManager a `save_dir` you can override) so running the tests never touches your real saves.
-- [ ] `tests/menu_smoke.gd`: open the title screen, check focus is on New Game, press it through to the world, open pause, resume.
+- [ ] `tests/menu_smoke.gd`: open the title screen, check focus is on New Game, press it through to the world, open pause, save, move, load, check the position came back, resume.
 - [ ] Add a SaveManager and GameState section to `core/README.md`: **"How to make a system save: add a field to GameState, add one line each to `to_dict` and `from_dict`."** That's the reusable recipe CLAUDE.md asks for.
 - [ ] Add the pause, settings and title screens to `scenes/ui/README.md`.
 - [ ] Update the Controls table in the root `README.md` (Pause is no longer reserved).
@@ -371,7 +404,8 @@ three times:
 |---|---|
 | Esc does nothing in the world | The pause menu's `CanvasLayer` is *When Paused* instead of *Always*, so it can't hear the key while the world runs |
 | Can't press any button with keyboard/controller | No `grab_focus()` when the screen opens |
-| Title screen frozen after Quit to Title | Changed scene before `get_tree().paused = false` |
+| Title screen frozen after Quit to Title, or the world frozen after Load | Changed or reloaded the scene before `get_tree().paused = false` |
+| A failed load leaves the game half-changed | `load_game` wrote into GameState before the file had finished parsing; parse first, then copy |
 | Loaded game puts you at the spawn, not where you saved | Position stored as a `Vector2` and came back as a string; store `[x, y]` |
 | Discoveries don't survive a load | `region_id` key came back as `String` but is looked up as `StringName` (or the other way round) |
 | Tests wipe your saves | The tests use the real `user://saves/`; give them their own folder |
