@@ -41,7 +41,7 @@ The game is a love letter to patience, difference, and the quiet power of showin
 - **Sound:** Optional and ambient — all meaning conveyed visually. Sound enriches but never gates
 - **Input:** Full keyboard, mouse, and controller support
 - **Platform target:** Steam
-- **Save system:** Autosave at key moments (region transitions, completed mends, NPC interactions, new places discovered) plus manual save and load from the pause menu at any time. Three save slots. Resting at an inn can also save, as an optional in-world moment
+- **Save system:** Autosave at key moments (region transitions, completed mends, NPC interactions, new places discovered), shown by a save icon in the lower right corner, plus manual save and load from the pause menu at any time. Quitting never saves. Three save slots, each one player with their own progress and settings. The game opens on the title art ("press any button"), then the slot screen. A new game is a brand new player; cutscenes skip with two presses of E. Resting at an inn can also save, as an optional in-world moment
 - **Camera:** Top-down, follows the player smoothly
 
 ---
