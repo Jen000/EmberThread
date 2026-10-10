@@ -1,13 +1,15 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
-[ext_resource type="PackedScene" uid="uid://djk7qt1ii5k6a" path="res://scenes/main/test_room.tscn" id="1_room"]
+[ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/regions/coastal/coastal_town.tscn" id="5_town"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/pip/pip.tscn" id="3_pip"]
 [ext_resource type="Script" path="res://scenes/ui/interaction_hint.gd" id="4_hint"]
 
 [node name="Main" type="Node2D" unique_id=812120936]
-
-[node name="TestRoom" parent="." unique_id=149480073 instance=ExtResource("1_room")]
+y_sort_enabled = true
+script = ExtResource("1_main")
+region_scene = ExtResource("5_town")
 
 [node name="Player" parent="." unique_id=104805603 instance=ExtResource("2_player")]
 position = Vector2(110, 200)

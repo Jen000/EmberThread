@@ -17,10 +17,18 @@ All dimensions, frame counts, naming, and formats below are taken from the Art B
 | Ground tiles | 16×16 |
 | Objects / items | 16×16 |
 | Larger objects (mosaic, armour) | 32×32 |
+| Market stall | 32×32 (2×2 tiles) |
+| Cottage (incl. Sable's, the elderly couple's) | 64×64 (4×4 tiles) |
+| Harbour master's office | 80×64 (5×4 tiles) |
+| Inn | 144×96 (9×6 tiles) |
+| Lighthouse | 48×112 (3×7 tiles) |
+| Old fishing boat | 64×32 (4×2 tiles) |
 | Dialogue portraits (all characters incl. player) | 64×64 |
 | Journal page illustrations | 96×96 or larger |
 | Map | 480×270 |
 | UI elements | Flexible (build at intended display size) |
+
+Building sizes are the full sprite, roof included, standing on its base. Buildings are multi-tile on purpose: the 32×32 "larger objects" size is for props like the mosaic and armour, and a 32×32 house would be only one character wide. Keep building sizes multiples of 16 so they sit on the tile grid. Other regions' buildings get sized the same way when those regions are built.
 
 **Frame counts**
 
@@ -104,7 +112,7 @@ Build the *structure* to spec; the pixels are throwaway.
 
 **Pip (8×10):** State machine and glow drive frame swaps. Stand-in is a small coloured shape with a glow node, with per-state frame sets at the right counts (idle-bob 3, distressed 3, leading 2, glow-pulse 3, shimmer 6–8) so real animation slots in state by state. Block placeholder only — 8×10 is bespoke.
 
-**Tilesets (16×16):** Solid-colour tiles or sourced gap-filler tiles (§7) at 16×16, with collision, autotile/terrain rules, and region loading all configured against them. Coastal is the reference region — fully built before any other begins.
+**Tilesets (16×16):** Solid-colour tiles or sourced gap-filler tiles (§7) at 16×16, with collision, autotile/terrain rules, and region loading all configured against them. Coastal is the reference region — fully built before any other begins. Final tileset sheets follow the sheet spec in §11.
 
 **NPCs (16×32):** Coloured rectangle at 16×32 with the NPC's name rendered on it (idle 2), so visit counters, dialogue triggers, and Pip reactions are testable. Block placeholder — keep distinct from the cast art.
 
@@ -158,3 +166,35 @@ Music comes later: stub a `MusicManager` with the same key-based interface and a
 **Art-readiness (per system).** A system is art-ready when dropping a correctly-named, correctly-sized file into its asset folder changes what appears in-game with **zero code edits**. Verify before calling any system done: swap one stand-in for a differently-coloured test file and confirm it appears with no other change. If it doesn't, the seam is leaking — fix it before moving on.
 
 **Pre-ship (whole build).** Not shippable while any stand-in remains. Before release: every placeholder and gap-filler asset is replaced by final art, the temp manifest is empty, and no block placeholders remain. Release blocker, not a cleanup task.
+
+## 11. Tileset sheet spec (for the artist)
+
+The game's ground is painted from **terrain sheets**: each sheet blends two terrains (sea and sand, grass and dirt). Godot picks the right edge and corner tile automatically from a rule attached to every tile *position*, and collision is attached the same way. So a sheet that keeps the stand-in's layout drops in with **zero edits**, and the town already painted with the stand-ins redraws in the new art.
+
+**Format**
+
+- One PNG per terrain pair, **384×128 px**: a grid of **24 × 8 tiles of 16×16**, no padding or spacing between tiles. 32-bit RGBA, no anti-aliasing (§1).
+- **Corner-based ("dual grid").** Each tile shows the terrain at its four corners, so the edge between two terrains runs through the *middle* of tiles, not along tile borders.
+- **Same layout as the stand-ins, tile for tile.** Every position must show the same corner pattern as the stand-in sheet at that position. All four coastal sheets share one layout. In each, one terrain is "raised" (an island, a hedge, a wall) and the other is the base:
+
+![Tileset layout guide](images/tileset_layout_guide.png)
+
+  The simplest workflow is to open the stand-in sheet and draw over it tile for tile.
+- **Repeated patterns are variants.** The layout repeats the plain fill tiles and most edge tiles many times. Draw them as variations (a shell, a crack, a tuft): Godot picks among identical patterns at random, which keeps large areas from looking stamped.
+- **Keep the boundaries where the stand-ins have them** (within about 4 px). Collision for blocking terrain (sea, walls) was measured from the stand-in pixels, so a shoreline drawn far from the stand-in's would collide in the wrong place. If a boundary must move, say so and the collision gets regenerated.
+
+**The coastal sheets** (`assets/tilesets/coastal/`, keep these exact filenames):
+
+| File | Base terrain | Raised terrain | Blocks movement |
+|---|---|---|---|
+| `sand_and_sea.png` | sea | sand | sea |
+| `stone_and_sand.png` | sand | stone wall (the cliff) | stone wall |
+| `sand_and_grass.png` | sand | grass | — |
+| `dirt_and_grass.png` | dirt | grass | — |
+
+**Palette across sheets.** Use **one sand and one grass** across every sheet, so sheets meet without a seam. The stand-ins don't do this (there are two sands and two greens), which is why the blockout shows hard edges where the beach meets the grass. Once the sands match, `sand_and_grass.png` also covers the beach-to-grass edge, and the tileset's two sand terrains get merged into one (a small tileset change, no repainting).
+
+**Known gap, optional to fix.** The layout has no tile for diagonal corners (raised terrain in two opposite corners only), so Godot substitutes the nearest pattern there. Adding them means extending the sheet beyond 384×128 and updating the tileset. Ask first; it's not needed for a good result.
+
+**Other regions** (forest, mountain, ruins) use the same format with their own terrain pairs, in `assets/tilesets/<region>/`. The pairs for each region get listed here when that region is built.
+

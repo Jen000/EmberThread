@@ -35,6 +35,7 @@ func _ready() -> void:
 	# from the box's own "When Paused", which runs ONLY while paused.)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var main: Node = load("res://scenes/main/main.tscn").instantiate()
+	main.region_scene = load("res://scenes/main/test_room.tscn")  # the playground
 	add_child(main)
 	_player = main.get_node("Player")
 	_sensor = main.get_node("Player/InteractionSensor")

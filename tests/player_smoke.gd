@@ -13,6 +13,7 @@ const LAYER_NODES := {"body": "Body", "clothes": "Clothes", "face": "Face", "hai
 
 func _ready() -> void:
 	var main: Node = load("res://scenes/main/main.tscn").instantiate()
+	main.region_scene = load("res://scenes/main/test_room.tscn")  # the playground
 	add_child(main)
 	var player: Player = main.get_node("Player")
 
