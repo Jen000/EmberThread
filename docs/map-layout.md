@@ -6,7 +6,7 @@ A first-pass layout of the four regions and the towns inside them. **Layout only
 
 The in-game version is **`assets/map/map_world.png`**: 480×270 (the locked map size) pixel art with no anti-aliasing. Systems load it through the registry as `AssetRegistry.get_sprite("map_world")`. It is stand-in art, tracked in `assets/temp_assets.md`; the artist's map replaces it by overwriting the same file.
 
-To change the layout, edit the PNG directly in Aseprite or LibreSprite.
+This is a layout mock only; the artist will draw the final map.
 
 ## Why the world is shaped this way
 
