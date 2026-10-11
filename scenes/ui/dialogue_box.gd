@@ -177,6 +177,11 @@ func _finish_reveal(index: int) -> void:
 ## the smoke test all call it. (Tests calling private methods is a smell: the
 ## test then breaks on any rename, and it hides that the thing has no API.)
 func advance() -> void:
+	# Nothing to advance once the box is closed. Without this, a stray call
+	# would emit `finished` a second time and un-pause the world, even if
+	# something else (the pause screen) is what paused it.
+	if not is_open:
+		return
 	if _reveal != null and _reveal.is_running():
 		_reveal.kill()
 		_finish_reveal(_line_index)

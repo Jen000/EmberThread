@@ -385,12 +385,15 @@ a tray, with the magenta placeholder border).
 
 ### The idea
 
-`save_game` already does the saving. `autosave` is a careful wrapper around
-it that says *no* in two situations:
-- **No playthrough is running** (`GameState.slot` is `-1`, like when you run
-  `main.tscn` on its own). There's nowhere to save to.
-- **The last autosave was under 10 seconds ago.** Discovering a place right
-  after finishing a conversation shouldn't write the file twice.
+`save_game` already does the saving. `autosave` is a small wrapper around it
+that says *no* in one situation: **no playthrough is running**
+(`GameState.slot` is `-1`, like when you run `main.tscn` on its own), so
+there's nowhere to save to.
+
+Two autosaves close together (finishing a conversation, then stepping into
+a new place) both save. That's on purpose: a save is a tiny file and takes
+about a millisecond, and since quitting doesn't save, skipping one could
+lose progress.
 
 The icon doesn't need to know about autosave at all. It listens to the
 `about_to_save` signal you added in step 5, so it shows for *every* save:
@@ -401,28 +404,14 @@ autosave, the pause screen's Save, and the inn later.
 - [ ] Add this at the bottom:
 
 ```gdscript
-## Shortest time between two autosaves, in milliseconds (10 seconds).
-const AUTOSAVE_GAP_MS := 10000
-## When the last autosave happened. Starts far in the past so the first
-## autosave is never skipped.
-var _last_autosave_ms := -AUTOSAVE_GAP_MS
-
-
-## Save automatically, if a playthrough is running and the last autosave
-## wasn't moments ago. `reason` only goes in the Output panel, for testing.
+## Save automatically, if a playthrough is running.
+## `reason` only goes in the Output panel, for testing.
 func autosave(reason: String) -> void:
 	if GameState.slot == -1:
 		return
-	var now := Time.get_ticks_msec()
-	if now - _last_autosave_ms < AUTOSAVE_GAP_MS:
-		return
-	_last_autosave_ms = now
 	print("autosave: ", reason)
 	save_game(GameState.slot)
 ```
-
-`Time.get_ticks_msec()` is how many milliseconds the game has been running.
-Subtracting the last autosave's time from it gives "how long ago was that".
 
 ### 2. In `scenes/main/main.gd`: call it at three moments
 
@@ -535,13 +524,10 @@ fade: the icon just appears, waits, and goes.
 
 **Check:**
 1. Run `main.tscn` with F5. Nothing saves on its own yet, because there's no slot (that comes with the slot screen). Press **F2** (your step 5 debug save): the icon appears in the lower right corner, then fades.
-2. Talk to the fisherman, wait over 10 seconds, then walk into the tide pools. The Output panel shows `autosave: new place discovered` and the icon appears.
-3. Talk to the fisherman again and finish the conversation (more than 10 seconds after the last save). The Output panel shows `autosave: conversation finished`.
+2. Walk into the tide pools. The Output panel shows `autosave: new place discovered` and the icon appears.
+3. Talk to the fisherman and finish the conversation. The Output panel shows `autosave: conversation finished`.
 4. Close the game without saving, run it, press **F3**. You're where the last autosave happened.
 5. Turn on reduced sensory (temporarily set `reduced_sensory := true` in settings.gd), press F2: the icon appears and disappears without fading. Set it back afterwards.
-
-Why doesn't check 2 autosave right after F2? Because of the 10-second gap.
-F2 counts as a save too. That's the throttle doing its job.
 
 ---
 
@@ -560,23 +546,173 @@ and the pause screen. Skip it if you'd rather not; nothing later depends on it.
 
 ## Step 8: Pause screen, with Save
 
-**Goal:** Esc / Start opens a menu that stops the world, and Save works from it.
+**Goal:** Esc / Start opens a menu that stops the world, and its Save button
+works. Load and Settings are there but greyed out until steps 9 and 10.
 
-- [ ] New scene `scenes/ui/pause_menu.tscn`: a `CanvasLayer` with a dimmed full-screen `ColorRect` behind a centred `VBoxContainer` holding five `Button`s: Resume, Save, Load, Settings, Quit to Title. Add it to `main.tscn` under `UI`, not as an autoload: there's nothing to pause outside the world.
-- [ ] **process_mode.** The `CanvasLayer` is *Always*, so it can hear Esc while the world runs. Its menu panel is *When Paused*. The dialogue box README explains why that difference matters.
-- [ ] Open on the `pause` action (already bound to Esc and Start): `get_tree().paused = true`, show, then `$Resume.grab_focus()`. **Without `grab_focus()` a controller or keyboard player can't press anything.**
-- [ ] **Don't open over another paused screen.** If `get_tree().paused` is already true, the dialogue box, mend screen or a cutscene owns the pause, so ignore the key. That's one `if` line, and it saves a whole class of "I unpaused the world while the dialogue was still open" bugs.
-- [ ] Esc / Start / the `ui_cancel` action (B on a controller) while open = Resume.
-- [ ] **Save** calls `SaveManager.save_game(GameState.slot)`. The save icon shows, and a label inside the menu says "Saved." or "Couldn't save. Your last save is still safe." The label stays until the menu closes; don't make it a message that vanishes on a timer, because some players need time to read it.
-- [ ] Disable Save when there's no slot (main.tscn run on its own).
-- [ ] **Quit to Title** asks first: "Quit to the title? Anything since your last save will be lost.", with the focus starting on **No**. On yes: `get_tree().paused = false`, then `get_tree().change_scene_to_file("res://scenes/ui/title_screen.tscn")`. It doesn't save. **Unpause before changing scene,** or the title screen arrives frozen.
-- [ ] Leave Load and Settings disabled for now. Steps 9 and 10 wire them up.
+One new scene, built in the editor, plus its script.
 
-**Check:** walk, press Esc. Everything stops, including Pip's bob and the
-player's walk animation. Arrow keys move between buttons, Enter presses,
-Esc resumes. Press Save, see the icon and "Saved.". Walk somewhere else,
-Quit to Title, then load the slot: you're where you pressed Save, not where
-you quit. Talk to the fisherman and press Esc mid-line: nothing happens.
+### The idea
+
+- **Stopping the world** is one line: `get_tree().paused = true`. Every node
+  stops, unless it's told to keep running. The pause screen itself is told
+  to keep running (Process Mode **Always**), so it can still hear keys and
+  its buttons still work.
+- **The pause screen shouldn't open on top of the dialogue box or the
+  mending screen.** Those already pause the world. So Esc only opens the
+  pause screen if the world *isn't* already paused.
+- **Keyboard and controller players need a starting point.** When the menu
+  opens, `grab_focus()` puts the highlight on Resume. Without it, nothing is
+  selected and the arrow keys do nothing.
+- **Quit to Title asks first,** with the highlight already on "No, keep
+  playing", because quitting doesn't save.
+
+### 1. Build the scene
+
+Here's the tree you're making. Indentation means "is a child of":
+
+```
+PauseMenu        CanvasLayer
+└─ Menu          Control
+   ├─ Dim        ColorRect
+   └─ Center     CenterContainer
+      └─ Panel   PanelContainer
+         └─ Box  VBoxContainer
+            ├─ Heading       Label            "Paused"
+            ├─ Buttons       VBoxContainer    %
+            │  ├─ Resume     Button           %  "Resume"
+            │  ├─ Save       Button           %  "Save"
+            │  ├─ Load       Button           %  "Load"
+            │  ├─ Settings   Button           %  "Settings"
+            │  └─ Quit       Button           %  "Quit to Title"
+            ├─ ConfirmQuit   VBoxContainer    %  (hidden)
+            │  ├─ Question   Label               "Quit to the title? Anything since your last save will be lost."
+            │  ├─ QuitYes    Button           %  "Yes, quit"
+            │  └─ QuitNo     Button           %  "No, keep playing"
+            └─ Message       Label            %  (empty)
+```
+
+**`%` means "unique name".** It lets the script find a node by name alone
+(`%Save`) instead of its full path (`$Menu/Center/Panel/Box/Buttons/Save`),
+so you can rearrange the tree later without breaking the script. To set it:
+right-click the node → **Access as Unique Name**. A `%` appears next to it.
+
+Step by step:
+
+- [ ] **Scene → New Scene → Other Node → CanvasLayer.** Rename it `PauseMenu`. In the Inspector:
+  - **Layer** → `5` (above the world and the controls hint, below the save icon's `10`, so the icon still shows when you press Save).
+  - **Process → Mode** → `Always`.
+- [ ] Add a child **Control**, renamed `Menu`. With it selected, open the **anchor menu** (green cross in the toolbar) and choose **Full Rect**, so it covers the whole screen.
+- [ ] Under `Menu`, add a **ColorRect** named `Dim`. Anchor menu → **Full Rect**. In the Inspector, set **Color** to black, with its alpha (the A slider) about halfway. It darkens the world behind the menu.
+- [ ] Under `Menu`, add a **CenterContainer** named `Center`. Anchor menu → **Full Rect**. Anything inside it sits in the middle of the screen.
+- [ ] Under `Center`, add a **PanelContainer** named `Panel`. This draws the menu's background box.
+- [ ] Under `Panel`, add a **VBoxContainer** named `Box`. A VBoxContainer stacks its children top to bottom, so you never position buttons by hand.
+- [ ] Under `Box`, add the rest from the tree above, in order. For each one:
+  - **Labels:** type the text in the Inspector's **Text**, and set **Horizontal Alignment** to Center.
+  - **Buttons:** type the text in **Text**.
+  - Mark every node with `%` in the tree as **Access as Unique Name**.
+- [ ] Select `ConfirmQuit` and click the **eye icon** next to it in the Scene panel, so it starts hidden.
+- [ ] Select `Question` and set **Autowrap Mode** → `Word (Smart)`, and **Custom Minimum Size** → **x** `220`. Without a width, a wrapping label squashes to nothing.
+- [ ] Save as `scenes/ui/pause_menu.tscn`.
+
+### 2. The script
+
+- [ ] Right-click `PauseMenu` → **Attach Script**, save as `scenes/ui/pause_menu.gd`, and replace its contents with:
+
+```gdscript
+extends CanvasLayer
+## The pause screen: Esc / Start in the world. Stops the world while open.
+## Resume, Save, Load, Settings, Quit to Title. Load and Settings are
+## switched on by later steps.
+
+@onready var _menu: Control = $Menu
+
+
+func _ready() -> void:
+	_menu.hide()
+	%Resume.pressed.connect(close)
+	%Save.pressed.connect(_on_save_pressed)
+	%Quit.pressed.connect(_on_quit_pressed)
+	%QuitYes.pressed.connect(_on_quit_confirmed)
+	%QuitNo.pressed.connect(_show_buttons)
+	%Load.disabled = true      # step 9 switches this on
+	%Settings.disabled = true  # step 10 switches this on
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _menu.visible:
+		# Esc / Start / B while open: step back (confirm -> menu -> game).
+		if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
+			if %ConfirmQuit.visible:
+				_show_buttons()
+			else:
+				close()
+			get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("pause") and not get_tree().paused:
+		# Only when nothing else (dialogue, mending) has already paused.
+		open()
+		get_viewport().set_input_as_handled()
+
+
+func open() -> void:
+	get_tree().paused = true
+	%Save.disabled = GameState.slot == -1  # nowhere to save without a slot
+	%Message.text = ""
+	_menu.show()
+	_show_buttons()
+	%Resume.grab_focus()
+
+
+func close() -> void:
+	_menu.hide()
+	get_tree().paused = false
+
+
+func _show_buttons() -> void:
+	%ConfirmQuit.hide()
+	%Buttons.show()
+	%Quit.grab_focus()
+
+
+func _on_save_pressed() -> void:
+	if SaveManager.save_game(GameState.slot):
+		%Message.text = "Saved."
+	else:
+		%Message.text = "Couldn't save. Your last save is still safe."
+
+
+func _on_quit_pressed() -> void:
+	%Buttons.hide()
+	%ConfirmQuit.show()
+	%QuitNo.grab_focus()  # the safe answer is the one already selected
+
+
+func _on_quit_confirmed() -> void:
+	get_tree().paused = false
+	# TODO(step 11): go to the title screen instead of closing the game:
+	# get_tree().change_scene_to_file("res://scenes/ui/title_screen.tscn")
+	get_tree().quit()
+```
+
+What the less obvious lines do:
+- **`%Resume.pressed.connect(close)`**: every Button sends a `pressed` signal when clicked or activated with Enter / A. This says "when Resume is pressed, run `close`".
+- **`_unhandled_input`** runs for every key or button press that nothing else has used. `is_action_pressed("pause")` asks "is this the pause key?" (Esc / Start, set up in Project Settings → Input Map). `ui_cancel` is Godot's built-in "back" action: Esc, and B on a controller.
+- **`set_input_as_handled()`** means "I've dealt with this key press". Without it, the same Esc that closes the menu could reopen it, or reach something else.
+- **Quit doesn't go to the title yet.** The title screen is step 11. Until then "Yes, quit" closes the game, so you can still test the confirmation. Step 11 swaps the line.
+
+### 3. Put it in the world
+
+- [ ] Open `scenes/main/main.tscn` and drag `pause_menu.tscn` from the FileSystem panel onto the **Main** node. Save.
+
+**Check:**
+1. Run with F5 and press **F2** once, so there's a slot (otherwise Save is greyed out, correctly).
+2. Press **Esc**. The world darkens and stops, including Pip's bob, and **Resume** is highlighted.
+3. Use the **arrow keys** to move between buttons. Load and Settings are greyed out and get skipped.
+4. Press **Save**. "Saved." appears under the buttons, and the save icon shows in the corner.
+5. Press **Esc**. The menu closes and the world moves again.
+6. Talk to the fisherman, and press **Esc** in the middle of his line. Nothing happens. Finish the conversation.
+7. Press **Esc**, choose **Quit to Title**. The question appears with **No, keep playing** highlighted. Press **Esc**: you're back at the buttons. Choose Quit again, then **Yes, quit**: the game closes.
+8. Run again, press **F3**: you're where you pressed Save in check 4.
+9. Try the whole thing with only the **mouse**: every button can be clicked.
 
 ---
 
