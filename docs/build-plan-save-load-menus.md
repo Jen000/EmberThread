@@ -565,6 +565,14 @@ One new scene, built in the editor, plus its script.
   selected and the arrow keys do nothing.
 - **Quit to Title asks first,** with the highlight already on "No, keep
   playing", because quitting doesn't save.
+- **Mouse, keyboard and controller all work, and share one highlight.**
+  Buttons handle clicks on their own. Arrow keys / D-pad move the highlight
+  and Enter / Space / A press it. Pointing the mouse at a button moves the
+  highlight there too, so there's never one button outlined for the keyboard
+  and a different one lit up under the mouse.
+- **Greyed-out buttons are skipped.** Godot greys a disabled button out but
+  still lets the arrow keys land on it, which feels broken. So a small helper
+  disables a button *and* takes it out of keyboard navigation.
 
 ### 1. Build the scene
 
@@ -634,8 +642,12 @@ func _ready() -> void:
 	%Quit.pressed.connect(_on_quit_pressed)
 	%QuitYes.pressed.connect(_on_quit_confirmed)
 	%QuitNo.pressed.connect(_show_buttons)
-	%Load.disabled = true      # step 9 switches this on
-	%Settings.disabled = true  # step 10 switches this on
+	_set_enabled(%Load, false)      # step 9 switches this on
+	_set_enabled(%Settings, false)  # step 10 switches this on
+	# Mouse and keyboard share one highlight: pointing at a button moves the
+	# keyboard focus there too, so there's never a second, confusing one.
+	for button in [%Resume, %Save, %Load, %Settings, %Quit, %QuitYes, %QuitNo]:
+		button.mouse_entered.connect(_focus_if_enabled.bind(button))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -655,7 +667,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func open() -> void:
 	get_tree().paused = true
-	%Save.disabled = GameState.slot == -1  # nowhere to save without a slot
+	_set_enabled(%Save, GameState.slot != -1)  # nowhere to save without a slot
 	%Message.text = ""
 	_menu.show()
 	_show_buttons()
@@ -691,12 +703,26 @@ func _on_quit_confirmed() -> void:
 	# TODO(step 11): go to the title screen instead of closing the game:
 	# get_tree().change_scene_to_file("res://scenes/ui/title_screen.tscn")
 	get_tree().quit()
+
+
+## Grey a button out AND take it out of keyboard/controller navigation.
+## (Godot still lets arrow keys land on a disabled button otherwise.)
+func _set_enabled(button: Button, enabled: bool) -> void:
+	button.disabled = not enabled
+	button.focus_mode = Control.FOCUS_ALL if enabled else Control.FOCUS_NONE
+
+
+func _focus_if_enabled(button: Button) -> void:
+	if not button.disabled:
+		button.grab_focus()
 ```
 
 What the less obvious lines do:
 - **`%Resume.pressed.connect(close)`**: every Button sends a `pressed` signal when clicked or activated with Enter / A. This says "when Resume is pressed, run `close`".
 - **`_unhandled_input`** runs for every key or button press that nothing else has used. `is_action_pressed("pause")` asks "is this the pause key?" (Esc / Start, set up in Project Settings → Input Map). `ui_cancel` is Godot's built-in "back" action: Esc, and B on a controller.
 - **`set_input_as_handled()`** means "I've dealt with this key press". Without it, the same Esc that closes the menu could reopen it, or reach something else.
+- **`mouse_entered.connect(_focus_if_enabled.bind(button))`**: `mouse_entered` is sent when the pointer moves onto a button. `.bind(button)` attaches *which* button it was, so one function can handle all seven.
+- **`focus_mode`** decides whether a control can hold the keyboard highlight. `FOCUS_NONE` takes a button out of arrow-key navigation; `FOCUS_ALL` puts it back.
 - **Quit doesn't go to the title yet.** The title screen is step 11. Until then "Yes, quit" closes the game, so you can still test the confirmation. Step 11 swaps the line.
 
 ### 3. Put it in the world
@@ -706,13 +732,14 @@ What the less obvious lines do:
 **Check:**
 1. Run with F5 and press **F2** once, so there's a slot (otherwise Save is greyed out, correctly).
 2. Press **Esc**. The world darkens and stops, including Pip's bob, and **Resume** is highlighted.
-3. Use the **arrow keys** to move between buttons. Load and Settings are greyed out and get skipped.
-4. Press **Save**. "Saved." appears under the buttons, and the save icon shows in the corner.
-5. Press **Esc**. The menu closes and the world moves again.
-6. Talk to the fisherman, and press **Esc** in the middle of his line. Nothing happens. Finish the conversation.
-7. Press **Esc**, choose **Quit to Title**. The question appears with **No, keep playing** highlighted. Press **Esc**: you're back at the buttons. Choose Quit again, then **Yes, quit**: the game closes.
-8. Run again, press **F3**: you're where you pressed Save in check 4.
-9. Try the whole thing with only the **mouse**: every button can be clicked.
+3. Use the **arrow keys** to move between buttons. Load and Settings are greyed out, and the highlight jumps straight over them (Resume → Save → Quit to Title).
+4. Move the **mouse** over Quit to Title: the highlight moves there. Press **Enter**: Quit to Title is the one that's pressed. Then press **Esc** to back out.
+5. **Click** Save. "Saved." appears under the buttons, and the save icon shows in the corner.
+6. Press **Esc**. The menu closes and the world moves again.
+7. Talk to the fisherman, and press **Esc** in the middle of his line. Nothing happens. Finish the conversation.
+8. Press **Esc**, choose **Quit to Title** with the keyboard. The question appears with **No, keep playing** highlighted. Press **Esc**: you're back at the buttons. Choose Quit again, then **Yes, quit**: the game closes.
+9. Run again, press **F3**: you're where you pressed Save in check 5.
+10. One more pass with **only the mouse**: open with Esc, then click Save, click Quit to Title, click No, click Resume.
 
 ---
 
