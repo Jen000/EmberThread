@@ -95,3 +95,6 @@ func _apply_text_scale() -> void:
 	var size := maxi(1, roundi(BASE_FONT_SIZE * Settings.text_scale))
 	_title.add_theme_font_size_override(&"font_size", size)
 	_close_button.add_theme_font_size_override(&"font_size", size)
+
+
+# TODO(autosave): when a mend completes, call SaveManager.autosave("mend completed")

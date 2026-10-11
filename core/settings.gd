@@ -6,6 +6,12 @@ extends Node
 
 signal changed
 
+## Where the last player's settings are kept, for the title and slot screens
+const LAST_USED := "user://settings.cfg"
+
+func _ready() -> void:
+	load_from(LAST_USED)
+
 ## Reduced sensory mode: systems that pulse, flash or flicker read this
 ## and soften — Pip's glow caps its flicker, particles dim, ambient sound
 ## layers quiet (each system applies its own softening when built).
@@ -40,3 +46,29 @@ var interaction_hints := true:
 	set(value):
 		interaction_hints = value
 		changed.emit()
+
+
+func save_to(path: String) -> void:
+	var config_file := ConfigFile.new()
+	config_file.set_value("accessibility", "text_scale", text_scale)
+	config_file.set_value("accessibility", "text_speed", text_speed)
+	config_file.set_value("accessibility", "reduced_sensory", reduced_sensory)
+	config_file.set_value("accessibility", "interaction_hints", interaction_hints)
+	config_file.save(path)
+
+func load_from(path: String) -> bool:
+	var config_file := ConfigFile.new()
+	var err := config_file.load(path)
+	if err != OK:
+		return false
+	text_scale = config_file.get_value("accessibility", "text_scale", 1.0)
+	text_speed = config_file.get_value("accessibility", "text_speed", 1.0)
+	reduced_sensory = config_file.get_value("accessibility", "reduced_sensory", false)
+	interaction_hints = config_file.get_value("accessibility", "interaction_hints", true)
+	return true
+
+func reset() -> void:
+	text_scale = 1.0
+	text_speed = 1.0
+	reduced_sensory = false
+	interaction_hints = true

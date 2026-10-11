@@ -25,10 +25,6 @@ const EDGE_THICKNESS := 32
 ## Playable area in pixels. Camera limits and edge walls follow it.
 @export var bounds := Rect2i(0, 0, 480, 270)
 
-## location_id -> true. Session-only until the save system exists.
-var discovered: Dictionary = {}
-
-
 func _ready() -> void:
 	_build_edge_walls()
 	for zone in find_children("*", "LocationZone", true, false):
@@ -54,11 +50,16 @@ func apply_camera_limits(camera: Camera2D) -> void:
 
 
 func _on_location_entered(zone: LocationZone) -> void:
-	if discovered.has(zone.location_id):
+	# GameState keeps one list of found places per region.
+	# The first time we're in this region, make its empty list.
+	if not GameState.discovered.has(region_id):
+		GameState.discovered[region_id] = {}
+	var places: Dictionary = GameState.discovered[region_id]
+	# If this place is new, add it and tell the world.
+	if places.has(zone.location_id):
 		return
-	discovered[zone.location_id] = true
+	places[zone.location_id] = true
 	location_discovered.emit(zone.location_id)
-
 
 ## Invisible walls just outside `bounds`, so nobody walks off the map before
 ## (or regardless of whether) the edge has blocking tiles painted on it.

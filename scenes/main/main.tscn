@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://cda5d8t8mb0wg"]
 
-[ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://scenes/regions/coastal/coastal_town.tscn" id="5_town"]
+[ext_resource type="Script" uid="uid://2h2c3bjk6jse" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/pip/pip.tscn" id="3_pip"]
-[ext_resource type="Script" path="res://scenes/ui/interaction_hint.gd" id="4_hint"]
+[ext_resource type="Script" uid="uid://dytuw5d4dvifv" path="res://scenes/ui/interaction_hint.gd" id="4_hint"]
+[ext_resource type="PackedScene" path="res://scenes/regions/coastal/coastal_town.tscn" id="5_town"]
+[ext_resource type="PackedScene" uid="uid://q85l65rjrgcr" path="res://scenes/ui/save_icon.tscn" id="6_ow5a4"]
 
 [node name="Main" type="Node2D" unique_id=812120936]
 y_sort_enabled = true
@@ -32,7 +33,7 @@ grow_vertical = 0
 theme_override_colors/font_color = Color(0.94902, 0.87451, 0.764706, 0.85)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.4)
 theme_override_font_sizes/font_size = 8
-text = "Move — WASD / Arrows / Left Stick      Interact — E / Space"
+text = "Move — WASD / Arrows / Left Stick      Interact — E"
 
 [node name="InteractionHint" type="Label" parent="UI" unique_id=352876893]
 process_mode = 3
@@ -44,3 +45,5 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 horizontal_alignment = 1
 script = ExtResource("4_hint")
+
+[node name="SaveIcon" parent="." unique_id=822394364 instance=ExtResource("6_ow5a4")]

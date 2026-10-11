@@ -1,9 +1,9 @@
-[gd_resource type="TileSet" format=3]
+[gd_resource type="TileSet" format=3 uid="uid://d1bcpbx2ckbvm"]
 
-[ext_resource type="Texture2D" path="res://assets/tilesets/coastal/sand_and_sea.png" id="1_icdxc"]
-[ext_resource type="Texture2D" path="res://assets/tilesets/coastal/stone_and_sand.png" id="2_xugnf"]
-[ext_resource type="Texture2D" path="res://assets/tilesets/coastal/sand_and_grass.png" id="3_07kk5"]
-[ext_resource type="Texture2D" path="res://assets/tilesets/coastal/dirt_and_grass.png" id="4_uy6ja"]
+[ext_resource type="Texture2D" uid="uid://hfs3igvx32rl" path="res://assets/tilesets/coastal/sand_and_sea.png" id="1_icdxc"]
+[ext_resource type="Texture2D" uid="uid://bh4k28u7fgyvd" path="res://assets/tilesets/coastal/stone_and_sand.png" id="2_xugnf"]
+[ext_resource type="Texture2D" uid="uid://cxvle4hp860jj" path="res://assets/tilesets/coastal/sand_and_grass.png" id="3_07kk5"]
+[ext_resource type="Texture2D" uid="uid://cld58uikniylq" path="res://assets/tilesets/coastal/dirt_and_grass.png" id="4_uy6ja"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_p0g7g"]
 texture = ExtResource("1_icdxc")
