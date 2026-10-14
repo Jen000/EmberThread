@@ -38,12 +38,12 @@ func _ready() -> void:
 ## the camera inside the map. Regions without the Region script (the test
 ## room) keep the positions set in main.tscn.
 func _arrive(target: Region) -> void:
+	var pip_offset := _pip.position - _player.position
 	if GameState.player_position != Vector2.ZERO:
 		_player.global_position = GameState.player_position
 	else:
 		_player.global_position = target.get_spawn_position()
 		SaveManager.autosave("arrived in a region")
-	var pip_offset := _pip.position - _player.position
 	_pip.global_position = _player.global_position + pip_offset
 	var camera := _player.get_node_or_null("Camera2D") as Camera2D
 	if camera != null:
@@ -55,7 +55,7 @@ func _remember_position() -> void:
 	GameState.player_position = _player.global_position
 
 
-	## Debug keys (debug builds only): F2 saves to slot 1, F3 loads it.
+## Debug keys (debug builds only): F2 saves to slot 1, F3 loads it.
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not OS.is_debug_build():
 		return

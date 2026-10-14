@@ -1,0 +1,100 @@
+[gd_scene format=3 uid="uid://c66hhxbasyfjl"]
+
+[ext_resource type="Script" uid="uid://dcm1kkxnhc3p7" path="res://scenes/ui/pause_menu.gd" id="1_6tw0m"]
+
+[node name="PauseMenu" type="CanvasLayer" unique_id=1650178555]
+process_mode = 3
+layer = 5
+script = ExtResource("1_6tw0m")
+
+[node name="Menu" type="Control" parent="." unique_id=1520891905]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="Menu" unique_id=1377529873]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.49803922)
+
+[node name="Center" type="CenterContainer" parent="Menu" unique_id=455042876]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Menu/Center" unique_id=704749828]
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="Menu/Center/Panel" unique_id=2146645625]
+layout_mode = 2
+
+[node name="Heading" type="Label" parent="Menu/Center/Panel/Box" unique_id=787821645]
+layout_mode = 2
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="Buttons" type="VBoxContainer" parent="Menu/Center/Panel/Box" unique_id=2088566613]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Resume" type="Button" parent="Menu/Center/Panel/Box/Buttons" unique_id=1950650109]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Resume"
+
+[node name="Save" type="Button" parent="Menu/Center/Panel/Box/Buttons" unique_id=2142581900]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save"
+
+[node name="Load" type="Button" parent="Menu/Center/Panel/Box/Buttons" unique_id=236639372]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Load"
+
+[node name="Settings" type="Button" parent="Menu/Center/Panel/Box/Buttons" unique_id=1430050047]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Settings"
+
+[node name="Quit" type="Button" parent="Menu/Center/Panel/Box/Buttons" unique_id=188221566]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Quit"
+
+[node name="ConfirmQuit" type="VBoxContainer" parent="Menu/Center/Panel/Box" unique_id=1389814534]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="Question" type="Label" parent="Menu/Center/Panel/Box/ConfirmQuit" unique_id=698607632]
+custom_minimum_size = Vector2(22, 0)
+layout_mode = 2
+text = "Quit to the title? Anything since your last save will be lost."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="QuitYes" type="Button" parent="Menu/Center/Panel/Box/ConfirmQuit" unique_id=1110147584]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Yes, quit"
+
+[node name="QuitNo" type="Button" parent="Menu/Center/Panel/Box/ConfirmQuit" unique_id=740513430]
+unique_name_in_owner = true
+layout_mode = 2
+text = "No, keep playing"
+
+[node name="Message" type="Label" parent="Menu/Center/Panel/Box" unique_id=1041635899]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1

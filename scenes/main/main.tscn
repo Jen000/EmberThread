@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://dytuw5d4dvifv" path="res://scenes/ui/interaction_hint.gd" id="4_hint"]
 [ext_resource type="PackedScene" path="res://scenes/regions/coastal/coastal_town.tscn" id="5_town"]
 [ext_resource type="PackedScene" uid="uid://q85l65rjrgcr" path="res://scenes/ui/save_icon.tscn" id="6_ow5a4"]
+[ext_resource type="PackedScene" uid="uid://c66hhxbasyfjl" path="res://scenes/ui/pause_menu.tscn" id="7_hujxm"]
 
 [node name="Main" type="Node2D" unique_id=812120936]
 y_sort_enabled = true
@@ -47,3 +48,5 @@ horizontal_alignment = 1
 script = ExtResource("4_hint")
 
 [node name="SaveIcon" parent="." unique_id=822394364 instance=ExtResource("6_ow5a4")]
+
+[node name="PauseMenu" parent="." unique_id=1650178555 instance=ExtResource("7_hujxm")]
