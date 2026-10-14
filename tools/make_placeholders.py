@@ -277,8 +277,22 @@ def save_icon():
     return canvas
 
 
+def title_art():
+    """480x270 title-screen stand-in: dark fill, magenta frame. The game's
+    name is a Label in the scene until the artist's title art includes it."""
+    canvas = blank(480, 270)
+    rect(canvas, 0, 0, 479, 269, MAGENTA)
+    rect(canvas, 3, 3, 476, 266, (34, 28, 40, 255))
+    for x in range(12, 468, 24):             # faint thread line across the middle
+        rect(canvas, x, 134, x + 11, 135, (90, 70, 96, 255))
+    return canvas
+
+
 def ui_files():
-    return {"ui/ui_save_icon.png": save_icon()}
+    return {
+        "ui/ui_save_icon.png": save_icon(),
+        "ui/ui_title.png": title_art(),
+    }
 
 
 # --- output ----------------------------------------------------------------

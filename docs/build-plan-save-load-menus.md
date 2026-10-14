@@ -1,6 +1,7 @@
 # Build plan: saving, loading, title screen, pause screen and cutscene skip
 
-> **Status: not started.** Work on the `feature/save-load-and-menus` branch.
+> **Status: in progress.** Steps 1–6 and 8 built; step 7 skipped; steps 9–15
+> next. Work on the `feature/save-load-and-menus` branch.
 > Tick the boxes as you go, and push whenever a step's check passes. I'll
 > review each push.
 
@@ -531,7 +532,9 @@ fade: the icon just appears, waits, and goes.
 
 ---
 
-## Step 7 (optional): A save point at the inn
+## Step 7 (optional, skipped): A save point at the inn
+
+*Not building this one for now. Steps 8 onward don't depend on it.*
 
 **Goal:** a save that happens as a moment in the world, alongside autosave
 and the pause screen. Skip it if you'd rather not; nothing later depends on it.
@@ -723,6 +726,7 @@ What the less obvious lines do:
 - **`set_input_as_handled()`** means "I've dealt with this key press". Without it, the same Esc that closes the menu could reopen it, or reach something else.
 - **`mouse_entered.connect(_focus_if_enabled.bind(button))`**: `mouse_entered` is sent when the pointer moves onto a button. `.bind(button)` attaches *which* button it was, so one function can handle all seven.
 - **`focus_mode`** decides whether a control can hold the keyboard highlight. `FOCUS_NONE` takes a button out of arrow-key navigation; `FOCUS_ALL` puts it back.
+- **`_set_enabled` and `_focus_if_enabled` move into a shared helper in step 9,** since every menu needs them.
 - **Quit doesn't go to the title yet.** The title screen is step 11. Until then "Yes, quit" closes the game, so you can still test the confirmation. Step 11 swaps the line.
 
 ### 3. Put it in the world
@@ -745,139 +749,1180 @@ What the less obvious lines do:
 
 ## Step 9: Slot list, and Load from the pause screen
 
-**Goal:** one reusable list of the three slots, used by the pause screen's
-Load now and the slot screen later.
+**Goal:** one reusable list of the three slots. The pause screen's Load uses
+it now, and the slot screen (step 12) uses the same list later.
 
-- [ ] New scene `scenes/ui/slot_list.tscn` (`process_mode` *Always*, because it opens over a paused game and over the unpaused slot screen). Three rows, one per slot, built from `SaveManager.slot_info()`: region name, playtime as hours and minutes, and how long ago it was saved. Empty slots say "Empty". Unreadable slots say "This save couldn't be read".
-- [ ] It has two modes, set when it opens. **Load** disables empty slots. **Play** (for the slot screen) allows every slot, and labels empty ones "New Game". It emits `slot_chosen(slot)` or `cancelled`. It doesn't load anything itself, so it stays reusable.
-- [ ] Focus goes to the current slot when opened from the pause screen, otherwise the most recently saved one. Back and `ui_cancel` close it and return focus to the button that opened it.
-- [ ] **Load from the pause screen** opens it in load mode. Choosing a slot asks first: "Load Slot 2? Anything since your last save will be lost.", with the focus starting on **No**. On yes: `SaveManager.load_game(slot)`, `get_tree().paused = false`, then `get_tree().reload_current_scene()`. Main starts again from the freshly loaded GameState (step 5 already does the rest). Loading another player's slot this way also switches to their settings.
-- [ ] If the load fails, stay in the game and say so in the slot list ("Slot 2 couldn't be read."). The current playthrough is untouched, because `load_game` only changes GameState after the file has parsed successfully (step 4).
+Three parts: a small shared helper first, then the slot list scene, then
+plugging it into the pause screen.
 
-**Check:** save in slot 1 at the inn door. Walk to the harbour, press Esc,
-Load, slot 1, yes. You're back at the inn door. Do it again and pick No:
-nothing changes. Write garbage into the slot's JSON, then try to load it:
-the game keeps running and tells you.
+### The idea
+
+- **One list, two jobs.** The pause screen wants "pick a save to load". The
+  slot screen wants "pick a save to continue, or an empty slot for a new
+  game". That's the same list with small differences, so it's one scene
+  with a **mode**: `"load"` greys out empty slots, `"play"` labels them
+  "New Game" and adds a Delete button to used ones.
+- **The list doesn't load anything.** It only says *which* slot was picked,
+  by sending a `slot_chosen(slot)` signal, or `cancelled` if the player
+  backed out. Whoever opened the list decides what happens next. That's
+  what makes it reusable.
+- **The rows are made by code, not in the editor.** There are always
+  three, and their text depends on what's on disk, so the script builds
+  them each time the list opens.
+- **Ask before anything that loses progress.** Loading throws away
+  everything since the last save, so the pause screen asks first, with
+  the highlight already on **No**.
+- **If a load fails, nothing changes.** Your step 4 `load_game` only touches
+  GameState once the file has been read successfully. So a broken file just
+  shows a message, and the game carries on.
+
+### 1. A shared helper for every menu
+
+Every menu from here on needs the same two tricks your pause menu already
+does: greying a button out *and* skipping it with the arrow keys, and
+making the mouse move the highlight. Rather than copy them into every
+script, they go in one small file.
+
+There's also a fix in here. Your step 8 version uses `mouse_entered`, which
+also fires when a screen **appears underneath a mouse that isn't moving**.
+On a menu that opens where the cursor happens to be resting, that steals
+the highlight from where the code put it. The version below only reacts to
+the mouse actually moving.
+
+- [ ] In the FileSystem panel, right-click `scenes/ui` → **Create New → Script...**. Name it `menu_util.gd`, **Inherits** `RefCounted`. Replace its contents with:
+
+```gdscript
+class_name MenuUtil
+extends RefCounted
+## Small helpers every menu shares, so mouse, keyboard and controller behave
+## the same on every screen. Use them as MenuUtil.set_enabled(...), etc.
+
+
+## Grey a button out AND take it out of keyboard/controller navigation.
+## (Godot still lets arrow keys land on a disabled button otherwise.)
+static func set_enabled(button: BaseButton, enabled: bool) -> void:
+	button.disabled = not enabled
+	button.focus_mode = Control.FOCUS_ALL if enabled else Control.FOCUS_NONE
+
+
+## Moving the mouse over a control moves the keyboard highlight to it, so
+## mouse and keyboard always share one highlight. Only real mouse movement
+## counts: a screen opening under a resting cursor doesn't steal it.
+static func hover_moves_focus(control: Control) -> void:
+	control.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseMotion \
+				and control.focus_mode != Control.FOCUS_NONE \
+				and not control.has_focus():
+			control.grab_focus())
+```
+
+What's new here:
+- **`class_name MenuUtil`** gives the script a global name, so any other script can write `MenuUtil.set_enabled(...)` without loading it first. (This is different from an autoload: nothing is added to the game, it's just a named toolbox.)
+- **`static func`** means "call it on the name, not on an object". There's no MenuUtil node anywhere.
+- **`extends RefCounted`**: the lightest thing a script can be. It isn't a node, so it never appears in a scene.
+- **`gui_input`** is a signal every Control sends for each input event that lands on it. `func(event): ...` is a function written in place (a "lambda"), so each control gets its own little listener.
+- **The `\` at the end of a line** means "this line carries on below". It's only for readability.
+
+Now switch your pause menu over to it:
+
+- [ ] In `pause_menu.gd`, in `_ready`, replace the `_set_enabled(...)` lines and the `for button in ...: button.mouse_entered.connect(...)` loop with:
+
+```gdscript
+	MenuUtil.set_enabled(%Load, false)      # switched on below, in this step
+	MenuUtil.set_enabled(%Settings, false)  # step 10 switches this on
+	for button in [%Resume, %Save, %Load, %Settings, %Quit, %QuitYes, %QuitNo]:
+		MenuUtil.hover_moves_focus(button)
+```
+
+- [ ] In `open()`, change `_set_enabled(%Save, ...)` to `MenuUtil.set_enabled(%Save, ...)`.
+- [ ] Delete the `_set_enabled` and `_focus_if_enabled` functions at the bottom. They live in MenuUtil now.
+
+Two small things I noticed checking your step 8, worth fixing while you're in `pause_menu.tscn`:
+- [ ] `Question`'s **Custom Minimum Size → x** is `22`, not `220`, so the question wraps very narrowly. Set it to `220`.
+- [ ] The last button's text is "Quit". Make it **"Quit to Title"**. Step 12 adds a separate "Quit game" button on the slot screen, and the two should be easy to tell apart.
+
+**Check:** run, press F2, then Esc. Everything works exactly as in step 8.
+Now leave the mouse still over where a button will appear, close the menu
+with Esc and open it again: Resume is highlighted, not the button under the
+mouse.
+
+### 2. Build the slot list scene
+
+```
+SlotList         PanelContainer
+└─ Box           VBoxContainer
+   ├─ Heading    Label            "Choose a slot"
+   ├─ Rows       VBoxContainer    %  (empty: the script fills it)
+   ├─ Confirm    VBoxContainer    %  (hidden)
+   │  ├─ Question Label           %  (empty)
+   │  ├─ Yes     Button           %  "Yes"
+   │  └─ No      Button           %  "No"
+   ├─ Back       Button           %  "Back"
+   └─ Message    Label            %  (empty)
+```
+
+- [ ] **Scene → New Scene → Other Node → PanelContainer.** Rename it `SlotList`. (No Process Mode change needed: it sits *inside* the pause menu, which is already Always, and it inherits that.)
+- [ ] Add the children from the tree above. Mark every `%` node **Access as Unique Name** (right-click → Access as Unique Name).
+- [ ] `Heading` and `Message`: **Horizontal Alignment** → Center.
+- [ ] `Question`: **Horizontal Alignment** → Center, **Autowrap Mode** → `Word (Smart)`, **Custom Minimum Size → x** → `220`.
+- [ ] Hide `Confirm` with its eye icon.
+- [ ] Save as `scenes/ui/slot_list.tscn`.
+
+### 3. The slot list script
+
+- [ ] Right-click `SlotList` → **Attach Script**, save as `scenes/ui/slot_list.gd`, and replace its contents with:
+
+```gdscript
+extends PanelContainer
+## The three save slots as a list. Used by the pause screen's Load and by
+## the slot screen. It only reports which slot was chosen; whoever opened it
+## decides what to do (load it, start a new game in it...).
+##
+## Two modes:
+##   "load"  empty slots can't be chosen (pause screen's Load)
+##   "play"  empty slots say "New Game", and each used slot has Delete
+##           (slot screen)
+
+## A slot was chosen (and confirmed, if a question was set).
+signal slot_chosen(slot: int)
+## The player backed out without choosing.
+signal cancelled
+
+## How region ids are shown to the player.
+const REGION_NAMES := {"coastal": "Coastal Town"}
+
+var _mode := "load"
+## Asked before `slot_chosen` is sent. Empty = don't ask. "%d" = slot number.
+var _question := ""
+## What Yes does right now: choose a slot, or delete one.
+var _pending_action := ""
+var _pending_slot := -1
+
+
+func _ready() -> void:
+	hide()
+	%Back.pressed.connect(_on_back)
+	%Yes.pressed.connect(_on_yes)
+	%No.pressed.connect(_show_rows)
+	for button in [%Back, %Yes, %No]:
+		MenuUtil.hover_moves_focus(button)
+
+
+## Show the list. `focus_slot` is the slot to highlight first (-1 = the most
+## recently saved one). `question` is asked before choosing, e.g.
+## "Load Slot %d? Anything since your last save will be lost."
+func open(mode: String, focus_slot: int = -1, question: String = "") -> void:
+	_mode = mode
+	_question = question
+	_pending_slot = -1
+	%Message.text = ""
+	show()
+	_build_rows()
+	_show_rows()
+	_focus_slot(focus_slot if focus_slot != -1 else _most_recent_slot())
+
+
+## Show a line of text under the list, e.g. "Slot 2 couldn't be read."
+func show_message(text: String) -> void:
+	%Message.text = text
+
+
+func close() -> void:
+	hide()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+		# Mark the key as used FIRST: going back may leave this screen.
+		get_viewport().set_input_as_handled()
+		if %Confirm.visible:
+			_show_rows()
+		else:
+			_on_back()
+
+
+# --- the rows ------------------------------------------------------------------
+
+## One row per slot: the slot button, plus Delete in play mode.
+func _build_rows() -> void:
+	for child in %Rows.get_children():
+		child.queue_free()
+	for slot in SaveManager.SLOT_COUNT:
+		var info := SaveManager.slot_info(slot)
+		var row := HBoxContainer.new()
+		var button := Button.new()
+		button.name = "Slot%d" % slot
+		button.text = _describe(slot, info)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var usable := not info.is_empty() and not info.has("broken")
+		MenuUtil.set_enabled(button, usable or (_mode == "play" and info.is_empty()))
+		button.pressed.connect(_on_slot_pressed.bind(slot))
+		MenuUtil.hover_moves_focus(button)
+		row.add_child(button)
+		if _mode == "play" and not info.is_empty():
+			var delete := Button.new()
+			delete.text = "Delete"
+			delete.pressed.connect(_on_delete_pressed.bind(slot))
+			MenuUtil.hover_moves_focus(delete)
+			row.add_child(delete)
+		%Rows.add_child(row)
+
+
+## "Slot 1 — Coastal Town · 1h 12m · 3 h ago", "Slot 2 — Empty", ...
+func _describe(slot: int, info: Dictionary) -> String:
+	var label := "Slot %d — " % (slot + 1)
+	if info.is_empty():
+		return label + ("New Game" if _mode == "play" else "Empty")
+	if info.has("broken"):
+		return label + "This save couldn't be read"
+	var region: String = REGION_NAMES.get(info["region_id"], info["region_id"])
+	return label + "%s · %s · %s" % [region, _playtime_text(info["playtime"]), _ago_text(info["saved_at"])]
+
+
+func _playtime_text(seconds: float) -> String:
+	var minutes := int(seconds) / 60
+	if minutes < 60:
+		return "%dm" % minutes
+	return "%dh %dm" % [minutes / 60, minutes % 60]
+
+
+func _ago_text(saved_at: float) -> String:
+	var seconds := int(Time.get_unix_time_from_system() - saved_at)
+	if seconds < 60:
+		return "just now"
+	if seconds < 3600:
+		return "%d min ago" % (seconds / 60)
+	if seconds < 86400:
+		return "%d h ago" % (seconds / 3600)
+	return "%d days ago" % (seconds / 86400)
+
+
+func _most_recent_slot() -> int:
+	var best := 0
+	var best_time := -1.0
+	for slot in SaveManager.SLOT_COUNT:
+		var info := SaveManager.slot_info(slot)
+		if info.has("saved_at") and info["saved_at"] > best_time:
+			best = slot
+			best_time = info["saved_at"]
+	return best
+
+
+func _focus_slot(slot: int) -> void:
+	var button := %Rows.get_child(slot).get_child(0) as Button
+	if button.disabled:
+		%Back.grab_focus()
+	else:
+		button.grab_focus()
+
+
+# --- choosing, deleting, confirming ---------------------------------------------
+
+func _on_slot_pressed(slot: int) -> void:
+	if _question == "":
+		slot_chosen.emit(slot)
+		return
+	_ask("choose", slot, _question % (slot + 1))
+
+
+func _on_delete_pressed(slot: int) -> void:
+	_ask("delete", slot, "Delete Slot %d? This can't be undone." % (slot + 1))
+
+
+func _ask(action: String, slot: int, question: String) -> void:
+	_pending_action = action
+	_pending_slot = slot
+	%Question.text = question
+	%Rows.hide()
+	%Back.hide()
+	%Confirm.show()
+	%No.grab_focus()  # the safe answer is the one already selected
+
+
+func _on_yes() -> void:
+	var slot := _pending_slot
+	if _pending_action == "delete":
+		SaveManager.delete_slot(slot)
+		_build_rows()
+		_show_rows()
+		_focus_slot(slot)
+	else:
+		_show_rows()
+		slot_chosen.emit(slot)
+
+
+func _show_rows() -> void:
+	%Confirm.hide()
+	%Rows.show()
+	%Back.show()
+	if _pending_slot != -1 and _pending_slot < %Rows.get_child_count():
+		_focus_slot(_pending_slot)
+
+
+func _on_back() -> void:
+	close()
+	cancelled.emit()
+```
+
+What the less obvious lines do:
+- **`signal slot_chosen(slot: int)`** declares a signal of your own. `slot_chosen.emit(2)` sends it, and anything that connected to it runs, receiving `2`. Same idea as a Button's `pressed`, but you decide when it fires.
+- **`Button.new()` / `row.add_child(button)`**: making nodes in code. It's what you'd do in the editor, written down.
+- **`slot + 1`**: slots are numbered 0, 1, 2 inside the game (that's how the files are named), but people count from 1. Only the text adds 1.
+- **`_question % (slot + 1)`**: `%` on a String fills in the `%d`. So `"Load Slot %d?" % 2` is `"Load Slot 2?"`.
+- **`queue_free()`** removes a node safely at the end of the frame. The old rows go before the new ones are built.
+- **`set_input_as_handled()` comes first** in `_unhandled_input`. When Back leaves the screen entirely (the slot screen does this in step 12), the node is no longer in a viewport afterwards, and calling it last gives an error.
+- **`REGION_NAMES`** turns `coastal` into "Coastal Town". Add a line when each new region is built.
+
+### 4. Put it in the pause screen
+
+- [ ] Open `pause_menu.tscn`. Right-click `Panel` → **Access as Unique Name**, so the script can hide the whole button panel while the list shows.
+- [ ] Drag `slot_list.tscn` from the FileSystem onto **`Center`** (not into Panel: it replaces Panel on screen while it's open). Right-click the new `SlotList` → **Access as Unique Name**.
+- [ ] In `pause_menu.gd`, add to `_ready`:
+
+```gdscript
+	%Load.pressed.connect(_on_load_pressed)
+	%SlotList.slot_chosen.connect(_on_slot_chosen)
+	%SlotList.cancelled.connect(_on_slot_list_closed)
+```
+
+- [ ] Remove the `MenuUtil.set_enabled(%Load, false)` line. Load is on now.
+- [ ] In `open()`, add these two lines just after `get_tree().paused = true`, so the menu always opens on its buttons even if it was closed while the list was showing:
+
+```gdscript
+	%Panel.show()
+	%SlotList.close()
+```
+
+- [ ] Add these functions at the bottom:
+
+```gdscript
+## Load: show the slot list in place of the buttons.
+func _on_load_pressed() -> void:
+	%Panel.hide()
+	%SlotList.open("load", GameState.slot,
+			"Load Slot %d? Anything since your last save will be lost.")
+
+
+## A slot was chosen and confirmed. Load it and restart the world from it.
+func _on_slot_chosen(slot: int) -> void:
+	if SaveManager.load_game(slot):
+		get_tree().paused = false
+		get_tree().reload_current_scene()
+	else:
+		%SlotList.show_message("Slot %d couldn't be read." % (slot + 1))
+
+
+## Back from the slot list: the buttons return, with Load highlighted.
+func _on_slot_list_closed() -> void:
+	%Panel.show()
+	%Load.grab_focus()
+```
+
+- **`reload_current_scene()`** throws the world away and builds it again. Because step 5 made the world start from GameState, and `load_game` just filled GameState, the rebuilt world is the loaded one. Loading a different player's slot also switches to their settings (step 4 did that too).
+- **Unpause before reloading.** Otherwise the fresh world starts paused and nothing moves.
+
+**Check:**
+1. Run, press **F2** (saves to slot 1). Walk somewhere else.
+2. **Esc → Load.** The list shows "Slot 1 — Coastal Town · 0m · just now", with that row highlighted. Slots 2 and 3 say "Empty", are greyed out, and the arrow keys skip them.
+3. Press **Enter**. The question appears, with **No** highlighted. Press **Enter** on No: back at the list, nothing changed.
+4. Choose slot 1 again, then **Yes**. The world reloads and you're back where you pressed F2. It isn't paused.
+5. Esc → Load, then **Esc**: back at the pause buttons with Load highlighted. Esc again: back in the game.
+6. Same again with **only the mouse**: click Load, click slot 1, click No, click Back, click Resume.
+7. **A broken save.** Close the game. In Godot, **Project → Open User Data Folder**, open `saves/slot_0.json` in a text editor, type some nonsense at the start, and save it. Run the game again, but **don't** press F2 (it would overwrite the broken file). Esc → Load. Slot 1 says "This save couldn't be read" and is greyed out. Press F2 afterwards to fix it.
 
 ---
 
 ## Step 10: Settings screen
 
-**Goal:** one settings screen, opened from both the pause screen and the slot screen.
+**Goal:** one settings screen, opened from the pause screen now and from the
+slot screen in step 12. Menu text grows with the Text size setting.
 
-- [ ] New scene `scenes/ui/settings_menu.tscn` (`process_mode` *Always*, since it opens in both a paused game and an unpaused slot screen).
-- [ ] One row per setting:
-  - Text size: `HSlider`, 0.75–2.0, step 0.25
-  - Text speed: `HSlider`, 0.5–5.0
-  - Reduced sensory: `CheckButton`
-  - Interaction hints: `CheckButton`
+### The idea
 
-  Each control sets the `Settings` field directly, so text resizes live as the slider moves. That's the best possible preview.
-- [ ] Each row has a short, plain description under it ("Softens flashing and pulsing, including Pip's glow."). People can't choose a setting they don't understand.
-- [ ] A Back button, and `ui_cancel` = Back. On close, save the settings, then hide and give focus back to the button that opened it:
-  - **In the world** (a slot is active): `SaveManager.save_settings(GameState.slot)`. This is remembered even though quitting doesn't save progress.
-  - **Always** also `Settings.save_to(Settings.LAST_USED)`, so the title screen opens with these settings next time.
-- [ ] The screen's own text uses `BASE_FONT_SIZE × Settings.text_scale`, like the dialogue box, so the settings screen is readable at the size the player needs.
-- [ ] Leave a visible "Controls: coming soon" row. Remappable controls are required by the design doc and deserve their own plan; don't build them inside this one.
-- [ ] Enable the pause screen's Settings button.
+- **Every control changes the setting the moment you touch it.** Drag Text
+  size and the text grows as you drag. That's the best preview there is,
+  and there's no "Apply" button to forget.
+- **Saving happens once, when the screen closes.** Into the current
+  player's slot (so each player keeps their own), and into `LAST_USED` (so
+  the title screen opens with these settings next time). This saves even
+  though quitting doesn't save progress: settings aren't progress.
+- **Every setting gets a plain description under it.** People can't choose
+  a setting they don't understand.
+- **One theme for all menus.** Godot lets a project have one *Theme*: a
+  resource that says how every button, label and panel looks by default.
+  Its font size is the size of all menu text. So when Text size changes,
+  `Settings` changes that one number, and every menu everywhere resizes
+  live. No menu has to do anything itself.
+- **The list scrolls** at big text sizes, so the screen never runs off the
+  edge.
 
-**Check:** from the pause screen, drag text size to 2.0. The menu text grows
-as you drag. Back, Quit to Title (don't save), and load the slot again: the
-text is still big. Load a different slot: its text is its own size.
+### 1. A project theme, so menu text follows Text size
+
+- [ ] In the FileSystem, right-click `scenes/ui` → **Create New → Resource...**, search for **Theme**, and save it as `scenes/ui/menu_theme.tres`.
+- [ ] Double-click it. In the Inspector, set **Default Font Size** → `10`. (A bottom panel opens for editing the theme; you can ignore it.)
+- [ ] **Project → Project Settings → GUI → Theme → Custom**: pick `menu_theme.tres`. Every Control in the game now uses it.
+
+Your menus get smaller at this point: Godot's default was 16, which is huge
+at 480×270. 10 is the size at Text size 1.0.
+
+- [ ] In `core/settings.gd`, add the constant near the top, below `LAST_USED`:
+
+```gdscript
+## Menu text size at text_scale 1.0. Every menu uses the project theme
+## (Project Settings → GUI → Theme), so changing it here resizes them all.
+const MENU_FONT_SIZE := 10
+```
+
+- [ ] Add two lines to the end of `_ready`, and the new function after it:
+
+```gdscript
+func _ready() -> void:
+	load_from(LAST_USED)
+	changed.connect(_apply_menu_text_size)
+	_apply_menu_text_size()
+
+
+## Make all menu text follow the text size setting, live.
+func _apply_menu_text_size() -> void:
+	var theme := ThemeDB.get_project_theme()
+	if theme != null:
+		theme.default_font_size = roundi(MENU_FONT_SIZE * text_scale)
+```
+
+- **`changed.connect(...)`**: `Settings` already sends `changed` whenever any setting is set (that's what the `set(value):` blocks do). Now one of the things listening is "resize the menus".
+- **`ThemeDB.get_project_theme()`** is the theme you just picked in Project Settings.
+- **`roundi`** rounds to a whole number. Font sizes can't be 12.5.
+
+**Check:** run. The pause menu text is smaller than before, and still readable.
+
+### 2. Build the settings scene
+
+```
+SettingsMenu          PanelContainer
+└─ Box                VBoxContainer
+   ├─ Heading         Label          "Settings"
+   ├─ Scroll          ScrollContainer
+   │  └─ Rows         VBoxContainer
+   │     ├─ TextSizeLabel       Label        %  "Text size"
+   │     ├─ TextSize            HSlider      %
+   │     ├─ TextSizeHelp        Label           "How big all the words in the game are."
+   │     ├─ TextSpeedLabel      Label        %  "Text speed"
+   │     ├─ TextSpeed           HSlider      %
+   │     ├─ TextSpeedHelp       Label           "How quickly conversation text appears. Higher is faster."
+   │     ├─ ReducedSensory      CheckButton  %  "Reduced sensory"
+   │     ├─ ReducedSensoryHelp  Label           "Softens flashing and pulsing, including Pip's glow."
+   │     ├─ Hints               CheckButton  %  "Interaction hints"
+   │     ├─ HintsHelp           Label           "Shows a label like "[E] Talk" over things you can use."
+   │     └─ Controls            Label           "Controls: coming soon"
+   └─ Back            Button         %  "Back"
+```
+
+- [ ] **Scene → New Scene → Other Node → PanelContainer**, renamed `SettingsMenu`.
+- [ ] Add the children from the tree. Mark the `%` ones **Access as Unique Name**. `Heading`: Horizontal Alignment → Center.
+- [ ] `Scroll`:
+  - **Custom Minimum Size** → x `280`, y `170`. A ScrollContainer has no size of its own, so without this it's zero tall.
+  - **Follow Focus** → on. When the arrow keys move down to a row that's off screen, it scrolls there.
+  - **Horizontal Scroll Mode** → `Disabled`. Text should wrap, never scroll sideways.
+- [ ] `Rows`: **Layout → Container Sizing → Horizontal** → **Expand** ticked, so the rows use the full width.
+- [ ] `TextSize`: **Min Value** `0.75`, **Max Value** `2`, **Step** `0.25`, **Value** `1`.
+- [ ] `TextSpeed`: **Min Value** `0.5`, **Max Value** `5`, **Step** `0.5`, **Value** `1`.
+- [ ] Every `...Help` label: **Autowrap Mode** → `Word (Smart)`.
+- [ ] Save as `scenes/ui/settings_menu.tscn`.
+
+**Remappable controls** are required by the design doc, and deserve their own
+plan, so for now the screen just says they're coming. Don't build them here.
+
+### 3. The settings script
+
+- [ ] Attach a script to `SettingsMenu`, saved as `scenes/ui/settings_menu.gd`:
+
+```gdscript
+extends PanelContainer
+## The settings screen. Opened from the pause screen and the slot screen.
+## Every control changes the setting straight away (text resizes as you drag),
+## and the settings are saved once, when the screen closes.
+
+## The screen was closed with Back / Esc.
+signal closed
+
+
+func _ready() -> void:
+	hide()
+	%TextSize.value_changed.connect(_on_text_size_changed)
+	%TextSpeed.value_changed.connect(_on_text_speed_changed)
+	%ReducedSensory.toggled.connect(_on_reduced_sensory_toggled)
+	%Hints.toggled.connect(_on_hints_toggled)
+	%Back.pressed.connect(close)
+	for control in [%TextSize, %TextSpeed, %ReducedSensory, %Hints, %Back]:
+		MenuUtil.hover_moves_focus(control)
+
+
+## Show the screen with the controls matching the current settings.
+func open() -> void:
+	# set_value_no_signal: move the control without it reporting a change.
+	%TextSize.set_value_no_signal(Settings.text_scale)
+	%TextSpeed.set_value_no_signal(Settings.text_speed)
+	%ReducedSensory.set_pressed_no_signal(Settings.reduced_sensory)
+	%Hints.set_pressed_no_signal(Settings.interaction_hints)
+	_update_labels()
+	show()
+	%TextSize.grab_focus()
+
+
+## Save the settings, then hide.
+func close() -> void:
+	if GameState.slot != -1:
+		SaveManager.save_settings(GameState.slot)  # this player's settings
+	Settings.save_to(Settings.LAST_USED)          # what the title screen opens with
+	hide()
+	closed.emit()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if visible and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause")):
+		get_viewport().set_input_as_handled()
+		close()
+
+
+func _on_text_size_changed(value: float) -> void:
+	Settings.text_scale = value
+	_update_labels()
+
+
+func _on_text_speed_changed(value: float) -> void:
+	Settings.text_speed = value
+	_update_labels()
+
+
+func _on_reduced_sensory_toggled(on: bool) -> void:
+	Settings.reduced_sensory = on
+
+
+func _on_hints_toggled(on: bool) -> void:
+	Settings.interaction_hints = on
+
+
+func _update_labels() -> void:
+	%TextSizeLabel.text = "Text size: %s×" % snappedf(Settings.text_scale, 0.01)
+	%TextSpeedLabel.text = "Text speed: %s×" % snappedf(Settings.text_speed, 0.01)
+```
+
+- **`value_changed`** (sliders) and **`toggled`** (check buttons) are their versions of a Button's `pressed`. They pass along the new value.
+- **`set_value_no_signal`** sets the slider to match `Settings` *without* sending `value_changed`. Opening the screen shouldn't count as the player changing something.
+- **Sliders and the keyboard:** with a slider highlighted, **left/right** move it and **up/down** move to the next row. That's built into Godot.
+
+### 4. Put it in the pause screen
+
+- [ ] Open `pause_menu.tscn` and drag `settings_menu.tscn` onto **`Center`**, next to SlotList. Mark it **Access as Unique Name**.
+- [ ] In `pause_menu.gd`:
+  - Remove `MenuUtil.set_enabled(%Settings, false)` from `_ready`.
+  - Add to `_ready`:
+
+```gdscript
+	%Settings.pressed.connect(_on_settings_pressed)
+	%SettingsMenu.closed.connect(_on_settings_closed)
+```
+
+  - Add `%SettingsMenu.hide()` in `open()`, under `%SlotList.close()`.
+  - Add at the bottom:
+
+```gdscript
+## Settings: show the settings screen in place of the buttons.
+func _on_settings_pressed() -> void:
+	%Panel.hide()
+	%SettingsMenu.open()
+
+
+func _on_settings_closed() -> void:
+	%Panel.show()
+	%Settings.grab_focus()
+```
+
+**Check:**
+1. Run, F2, Esc → **Settings**. Text size is highlighted.
+2. Press **right** a few times. All the text on the screen grows as you press, and the label says "Text size: 1.75×".
+3. Press **down**: the highlight moves to the next control, and the list scrolls to keep it in view.
+4. Press **Space** on Reduced sensory: it switches on. Press it again to switch it off.
+5. **Esc**: back at the pause buttons, with Settings highlighted. The pause menu text is big too.
+6. Drag Text size to **2.0** with the mouse. Nothing runs off the screen; the list scrolls instead.
+7. Esc twice to get back to the game, close the game, run it again, and press **F3**. The text is still big: it was saved with slot 1.
 
 ---
 
 ## Step 11: Title screen
 
-**Goal:** the game opens on the title art and waits for any button.
+**Goal:** the game opens on the title art, and waits for any button.
 
-- [ ] New scene `scenes/ui/title_screen.tscn` (a `Control`): the title art filling the screen, and "Press any button" near the bottom. Nothing else.
-- [ ] The title art goes through `AssetRegistry`: a 480×270 block placeholder now (`ui_title.png`, magenta-marked and labelled), the artist's art later with no code change.
-- [ ] Make it the main scene: **Project Settings → Application → Run → Main Scene**.
-- [ ] **Any button means any:** a key, a mouse click, or a controller button. In `_unhandled_input`, accept `InputEventKey`, `InputEventMouseButton` and `InputEventJoypadButton`, but only when `event.pressed` and not an echo. Ignore mouse movement and stick drift (`InputEventMouseMotion`, `InputEventJoypadMotion`), or the screen skips itself.
-- [ ] Then `change_scene_to_file("res://scenes/ui/slot_screen.tscn")`.
-- [ ] The prompt may breathe gently (slow fade in and out), but under `Settings.reduced_sensory` it's steady. It never blinks, and the screen never moves on by itself.
+### The idea
 
-**Check:** run the game. The title shows and waits. Each of a key, a click
-and a controller button moves on. Wiggling the mouse doesn't.
+- **Art goes through `AssetRegistry`,** like everything else. There's a
+  480×270 block placeholder already in the repo, `assets/ui/ui_title.png`
+  (magenta border, so it's obviously temporary). When the artist delivers
+  the real one with the same name, it just appears. No code changes.
+- **"Any button" means any:** a key, a mouse click, a controller button.
+  But *not* the mouse moving or a stick drifting slightly, or the screen
+  would skip itself before anyone saw it.
+- **It never moves on by itself.** No timer.
+
+### 1. Build the scene
+
+```
+TitleScreen   Control
+├─ Art        TextureRect
+├─ Name       Label         "Ember & Thread"
+└─ Prompt     Label         "Press any button"
+```
+
+- [ ] **Scene → New Scene → User Interface** (that makes a Control). Rename it `TitleScreen`. Anchor menu → **Full Rect**.
+- [ ] Add a **TextureRect** named `Art`. Anchor menu → **Full Rect**. **Expand Mode** → `Ignore Size`, so it stretches to the screen whatever size the art is. Leave **Texture** empty: the script sets it.
+- [ ] Add a **Label** named `Name`. Anchor menu → **Full Rect**. **Horizontal** and **Vertical Alignment** → Center. Under **Theme Overrides → Font Sizes → Font Size**, tick it and set `28`. (The real title art will probably include the name; then delete this label.)
+- [ ] Add a **Label** named `Prompt`. Anchor menu → **Bottom Wide**. **Horizontal Alignment** → Center. Then in **Layout → Transform**, set **Position → y** to about `225`, so it sits a little above the bottom edge.
+- [ ] Save as `scenes/ui/title_screen.tscn`.
+
+### 2. The script
+
+- [ ] Attach `scenes/ui/title_screen.gd`:
+
+```gdscript
+extends Control
+## The title screen: the title art and "Press any button". Any key, mouse
+## click or controller button moves on to the slot screen. Nothing happens
+## on a timer.
+
+const SLOT_SCREEN := "res://scenes/ui/slot_screen.tscn"
+
+
+func _ready() -> void:
+	$Art.texture = AssetRegistry.get_sprite("ui_title")
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _is_a_press(event):
+		get_viewport().set_input_as_handled()
+		get_tree().change_scene_to_file(SLOT_SCREEN)
+
+
+## True for a key, mouse button or controller button being pressed down.
+## Not for moving the mouse, nudging a stick, or the scroll wheel, so the
+## screen never skips itself by accident.
+func _is_a_press(event: InputEvent) -> bool:
+	if not event.is_pressed() or event.is_echo():
+		return false
+	if event is InputEventMouseButton:
+		var button := (event as InputEventMouseButton).button_index
+		return button == MOUSE_BUTTON_LEFT or button == MOUSE_BUTTON_RIGHT
+	return event is InputEventKey or event is InputEventJoypadButton
+```
+
+- **`event is InputEventKey`** asks "is this a keyboard event?". Each kind of input is its own type: keys, mouse buttons, mouse movement, controller buttons, controller sticks. Checking the type is how you accept some and ignore others.
+- **`is_echo()`** is a key repeating because it's held down. Only the first press counts.
+- **The scroll wheel** counts as a "mouse button" in Godot, which is why the code only accepts left and right clicks.
+
+### 3. Make it the first screen, and make Quit go there
+
+- [ ] **Project → Project Settings → Application → Run → Main Scene**: pick `title_screen.tscn`. Now F5 starts here. (F6 still runs whatever scene you have open, so you can keep testing the world directly.)
+- [ ] In `pause_menu.gd`, `_on_quit_confirmed` becomes:
+
+```gdscript
+func _on_quit_confirmed() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/ui/title_screen.tscn")
+```
+
+Unpausing first matters: the pause belongs to the whole game, not the
+world, so otherwise the title screen would start paused.
+
+**Check:** (the slot screen comes in step 12, so moving on gives an error
+for now. That's expected.)
+1. F5. The placeholder title shows: a magenta frame, the name, "Press any button".
+2. Move the mouse around, and scroll the wheel. Nothing happens.
+3. Press a key. The Output panel shows an error about `slot_screen.tscn` not existing. Good: that means it tried to move on.
+4. Run again and try a mouse click, and a controller button if you have one. Same.
 
 ---
 
 ## Step 12: Slot screen and new game
 
-**Goal:** choose a slot: continue a player, or start a new one.
+**Goal:** after the title, choose a slot: continue that player, or start a
+new one. Settings is here too, so someone can make the text readable
+*before* choosing.
 
-- [ ] New scene `scenes/ui/slot_screen.tscn`: the step 9 slot list in **play** mode, plus Settings and Quit buttons.
-- [ ] **A slot with a save:** `SaveManager.load_game(slot)`, then change scene to `main.tscn`. The player's settings apply as it loads.
-- [ ] **An empty slot (New Game):** a brand new player.
-  1. `GameState.reset()`, then `GameState.slot = chosen`.
-  2. The new player's settings are the ones on screen right now: `SaveManager.save_settings(chosen)`.
-  3. Leave the marked spot for the character creator:
+### The idea
 
-     ```gdscript
-     # TODO(character-creation): name & pronouns, then appearance, go here,
-     # before the world loads (GDD: "chosen at game start, before anything else").
-     ```
+- **It's mostly the slot list from step 9**, in `"play"` mode, with a
+  Settings and a Quit button underneath.
+- **No slot is active here.** `GameState.slot = -1` when the screen opens.
+  So Settings changes only the screen's own settings (and `LAST_USED`),
+  not anyone's slot.
+- **A used slot** loads it, then switches to the world. Loading also
+  switches to that player's settings (step 4).
+- **An empty slot** is a brand-new player: GameState is reset, and the new
+  player starts with the settings currently on screen. Their save file
+  appears at the first autosave (arriving in the region).
+- **Starting over in a used slot** is Delete, then New Game. Delete asks
+  first, with **No** highlighted.
+- **Back / Esc** goes to the title. **Quit game** closes the game, with no
+  question, because nothing is being played.
 
-  4. Play the opening cutscene (step 13), then change scene to `main.tscn`. The first autosave (arriving in the region) creates the save file.
-- [ ] **Starting over in a used slot:** each occupied slot also has **Start over**, with a confirmation that names it ("Erase Slot 2: Coastal Town, 1h 12m, and start a new game?"), focus on **No**. On yes: `delete_slot`, then New Game as above. A separate **Delete** (same confirmation, without starting) lets someone clear a slot they're done with.
-- [ ] **Settings** opens the step 10 screen. With no slot chosen, it changes the slot screen's own settings (and `LAST_USED`), so a second player can make the screen readable before choosing.
-- [ ] **Quit** is `get_tree().quit()`. It doesn't need a "you'll lose progress" question here, since nothing is being played.
-- [ ] Focus starts on the most recently saved slot, or Slot 1 if there are none.
+### 1. Build the scene
 
-**Check:** run the game, press a button, choose empty Slot 2. You arrive in
-the world (after the cutscene, once step 13 exists). Walk somewhere, wait
-for an autosave, Quit to Title. Slot 2 now shows Coastal Town and a few
-seconds of playtime. Choose it: you're back where it autosaved.
+```
+SlotScreen        Control
+├─ Background      ColorRect
+└─ Center          CenterContainer
+   ├─ Main         VBoxContainer   %
+   │  ├─ SlotList  (slot_list.tscn)  %
+   │  └─ Buttons   HBoxContainer
+   │     ├─ Settings  Button  %  "Settings"
+   │     └─ Quit      Button  %  "Quit game"
+   └─ SettingsMenu  (settings_menu.tscn)  %
+```
+
+- [ ] **Scene → New Scene → User Interface**, renamed `SlotScreen`. Anchor menu → **Full Rect**.
+- [ ] Add a **ColorRect** `Background`, Full Rect, a dark colour. (A real background is an art job for later.)
+- [ ] Add a **CenterContainer** `Center`, Full Rect.
+- [ ] Under Center, a **VBoxContainer** `Main`. Drag `slot_list.tscn` into it, then add an **HBoxContainer** `Buttons` with the two buttons. Set Buttons' **Alignment** → Center.
+- [ ] Drag `settings_menu.tscn` onto **Center** (next to Main, not inside it).
+- [ ] Mark every `%` node **Access as Unique Name**.
+- [ ] Save as `scenes/ui/slot_screen.tscn`.
+
+### 2. The script
+
+- [ ] Attach `scenes/ui/slot_screen.gd`:
+
+```gdscript
+extends Control
+## The slot screen, after the title: choose a slot to continue that player's
+## game, or an empty slot to start a new one. Also Settings and Quit.
+
+const TITLE_SCREEN := "res://scenes/ui/title_screen.tscn"
+const WORLD := "res://scenes/main/main.tscn"
+
+
+func _ready() -> void:
+	GameState.slot = -1  # no playthrough until a slot is chosen
+	%SlotList.slot_chosen.connect(_on_slot_chosen)
+	%SlotList.cancelled.connect(_back_to_title)
+	%Settings.pressed.connect(_on_settings_pressed)
+	%SettingsMenu.closed.connect(_on_settings_closed)
+	%Quit.pressed.connect(get_tree().quit)
+	for button in [%Settings, %Quit]:
+		MenuUtil.hover_moves_focus(button)
+	%SlotList.open("play")
+
+
+func _on_slot_chosen(slot: int) -> void:
+	if SaveManager.slot_info(slot).is_empty():
+		_start_new_game(slot)
+	elif SaveManager.load_game(slot):
+		get_tree().change_scene_to_file(WORLD)
+	else:
+		%SlotList.show_message("Slot %d couldn't be read." % (slot + 1))
+
+
+## A brand new player in an empty slot.
+func _start_new_game(slot: int) -> void:
+	GameState.reset()
+	GameState.slot = slot
+	# The new player keeps whatever settings are on screen right now.
+	SaveManager.save_settings(slot)
+	# TODO(character-creation): name & pronouns, then appearance, go here,
+	# before the world loads (GDD: "chosen at game start, before anything else").
+	get_tree().change_scene_to_file(WORLD)
+
+
+func _back_to_title() -> void:
+	get_tree().change_scene_to_file(TITLE_SCREEN)
+
+
+func _on_settings_pressed() -> void:
+	%Main.hide()
+	%SettingsMenu.open()
+
+
+func _on_settings_closed() -> void:
+	%Main.show()
+	%Settings.grab_focus()
+```
+
+- **`%SlotList.open("play")`** with no slot given highlights the most recently saved slot, or Slot 1 if there are none.
+- **`%Quit.pressed.connect(get_tree().quit)`**: you can connect a signal straight to any function, including Godot's own.
+- **There's no question on Quit game.** Nothing is being played, so nothing can be lost.
+
+**Check:**
+1. F5, press a key. The slot screen shows, with Slot 1 highlighted. The mouse resting somewhere doesn't move the highlight.
+2. Choose an empty **Slot 2**: you're in the world. The save icon flashes (the arrival autosave).
+3. Walk a bit, Esc → **Quit to Title** → Yes. Press a key.
+4. Slot 2 now reads "Coastal Town · 0m · just now" and has a **Delete** button. It's highlighted, because it's the most recent.
+5. Choose it: you're back where it autosaved.
+6. Quit to Title again. On the slot screen, **Settings** → text size 2.0 → Esc. The slot screen text is big. Choose an empty **Slot 3** (new game): its text is big too, because a new player keeps the settings on screen.
+7. Quit to Title, choose **Slot 2**: its text is back to normal. Each player keeps their own.
+8. **Delete** on Slot 3: the question has **No** highlighted. Esc: nothing deleted. Delete → Yes: Slot 3 says "New Game" again.
+9. **Esc** on the slot screen: back to the title.
+10. **Quit game**: the game closes.
 
 ---
 
 ## Step 13: The opening cutscene and two-press skip
 
-**Goal:** a cutscene component that any cutscene can use, with the skip
-built in, and a placeholder opening for New Game.
+**Goal:** a cutscene system any cutscene can use, with the skip built in,
+and a placeholder opening that plays on New Game.
 
-- [ ] New scene `scenes/ui/cutscene.tscn` (a `CanvasLayer`, `process_mode` *Always*). For now a cutscene is a list of text cards over a plain background, which is enough to build and test the skip. The real opening (Moss, the road, finding Pip) and the memory cutscenes replace the cards later, and keep the skip.
-- [ ] `play(cards: Array) -> void`, and a `finished` signal that fires whether the cutscene ended or was skipped. Callers just `await cutscene.finished`.
-- [ ] Each card waits for the player to move on (Space / Enter / click, like dialogue), never for a timer. Cards that move on by themselves are a reading-speed problem.
-- [ ] **The two-press skip**, on its own action (see below):
-  1. First press: show "Press E again to skip" in a corner, using the key the action is actually bound to, not a typed "E" (the interaction hint already does this). The cutscene keeps playing.
-  2. Second press: skip to the end and emit `finished`.
+### The idea
 
-  **Use a key that isn't also "next card".** If Space advances cards and also counts as a skip press, a player reading quickly will skip by accident. Advance on `ui_accept` (Enter / click), and give skip its own binding: an action named `skip_cutscene` on E and the controller's Y. The two-press rule then catches the rest.
-- [ ] The prompt stays until the cutscene ends. There's no time limit on the second press. Pressing Esc / B while the prompt shows hides it again (changed my mind).
-- [ ] New Game plays a three-card placeholder, e.g. "On the road to the coast…" and so on, then loads the world.
+- **For now a cutscene is a list of text cards** over a dark screen.
+  That's enough to build and test the skip. The real opening (Moss, the
+  road, finding Pip) and the memory cutscenes replace the cards later and
+  keep everything else.
+- **It's an autoload,** like Dialogue: any script can write
+  `Cutscene.play([...])` and then `await Cutscene.finished`. `finished`
+  fires whether it played to the end or was skipped, so callers don't care
+  which.
+- **Cards never move on by themselves.** Enter / Space / A or a click goes
+  to the next one. Cards on a timer are a reading-speed problem.
+- **Skipping takes two presses,** on its own key: **E** (or **Y** on a
+  controller). The first press changes the Skip button to "Press E or click
+  again to skip". The second skips. There's no time limit on the second
+  press, and **Esc** puts the button back (changed my mind).
+- **Skip has its own key, not the "next card" key.** If one key did both,
+  a fast reader would skip by accident.
+- **Mouse players** get a Skip button in the corner. It also needs two
+  clicks.
+- **It pauses the game while it plays,** so the world doesn't move behind
+  it, and it listens to keys *before* any other screen, so Enter can't
+  reach a menu hidden underneath.
 
-**Check:** New Game. Press E once: the prompt appears and the cards carry
-on. Press E again: you're in the world. New Game again, read through without
-pressing E: the cards play to the end and the world loads.
+### 1. A new input action for skipping
+
+- [ ] **Project → Project Settings → Input Map**. In **Add New Action** type `skip_cutscene`, press **Add**.
+- [ ] Click the **+** on its row → press **E** → OK.
+- [ ] Click **+** again → in the list, open **Joypad Buttons** and pick **Button 3** (Y on Xbox, Triangle on PlayStation) → OK.
+
+E is also Interact, and Y is also Journal. That's fine: during a cutscene
+neither of those can happen, because the cutscene takes every key first.
+
+### 2. Build the scene
+
+```
+Cutscene        CanvasLayer
+└─ Screen       Control          %
+   ├─ Background ColorRect       %
+   ├─ Card       Label           %
+   ├─ Continue   Label              "Enter or click to continue"
+   └─ Skip       Button          %  "Skip (E)"
+```
+
+- [ ] **Scene → New Scene → Other Node → CanvasLayer**, renamed `Cutscene`. **Layer** → `8` (over the pause menu's 5, under the save icon's 10). **Process → Mode** → `When Paused`. (Same as the dialogue box: it pauses the game, then keeps running *because* it's paused.)
+- [ ] Add a **Control** `Screen`, Full Rect.
+- [ ] Under Screen, a **ColorRect** `Background`, Full Rect, nearly black.
+- [ ] A **Label** `Card`, Full Rect. **Horizontal** and **Vertical Alignment** → Center. **Autowrap Mode** → `Word (Smart)`. Under **Layout → Transform**, bring the left and right edges in a little (about 60 pixels each side) so long lines wrap before the edges. **Mouse → Filter** → `Ignore`, so clicks pass through to the background.
+- [ ] A **Label** `Continue`, anchor **Center Bottom**, Horizontal Alignment Center, a bit above the bottom edge. **Mouse → Filter** → `Ignore`. Under **Visibility → Modulate**, lower the alpha a little so it's quieter than the card.
+- [ ] A **Button** `Skip`, anchor **Bottom Right**, nudged in from the corner. **Focus → Mode** → `None`. (Important: otherwise Enter, meant for "next card", would press Skip.)
+- [ ] Mark `Screen`, `Background`, `Card` and `Skip` **Access as Unique Name**.
+- [ ] Save as `scenes/ui/cutscene.tscn`.
+
+### 3. The script
+
+- [ ] Attach `scenes/ui/cutscene.gd`:
+
+```gdscript
+extends CanvasLayer
+## Cutscenes: `Cutscene.play(cards)`, then `await Cutscene.finished`.
+## Today a cutscene is a list of text cards; real scenes replace the cards
+## later and keep everything else (the pause, the two-press skip).
+##
+## Cards never move on by themselves: Enter / Space / A or a click.
+## Skipping takes two presses of `skip_cutscene` (E / Y), or two clicks on
+## Skip, so nobody skips by accident. Esc / B changes your mind.
+
+## Sent when the cutscene ends, whether it played out or was skipped.
+signal finished
+
+var _cards: Array = []
+var _index := 0
+var _skip_armed := false  # true after the first skip press
+
+
+func _ready() -> void:
+	%Screen.hide()
+	_disarm_skip()
+	%Skip.pressed.connect(_on_skip_pressed)
+	%Background.gui_input.connect(_on_background_input)
+
+
+func play(cards: Array) -> void:
+	_cards = cards
+	_index = 0
+	_disarm_skip()
+	get_tree().paused = true
+	%Screen.show()
+	_show_card()
+
+
+func is_playing() -> bool:
+	return %Screen.visible
+
+
+## `_input`, not `_unhandled_input`: a cutscene sits on top of everything, so
+## it hears keys first and keeps them from the screens underneath.
+func _input(event: InputEvent) -> void:
+	if not is_playing() or event is InputEventMouse:
+		return
+	get_viewport().set_input_as_handled()  # first, before anything can end us
+	if event.is_action_pressed("skip_cutscene"):
+		_on_skip_pressed()
+	elif event.is_action_pressed("ui_cancel"):
+		_disarm_skip()
+	elif event.is_action_pressed("ui_accept"):
+		_next_card()
+
+
+func _on_background_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed \
+			and event.button_index == MOUSE_BUTTON_LEFT:
+		_next_card()
+
+
+func _show_card() -> void:
+	%Card.text = _cards[_index]
+
+
+func _next_card() -> void:
+	_index += 1
+	if _index < _cards.size():
+		_show_card()
+	else:
+		_finish()
+
+
+func _on_skip_pressed() -> void:
+	if _skip_armed:
+		_finish()
+	else:
+		_skip_armed = true
+		%Skip.text = "Press %s or click again to skip" % _skip_key()
+
+
+func _disarm_skip() -> void:
+	_skip_armed = false
+	%Skip.text = "Skip (%s)" % _skip_key()
+
+
+func _finish() -> void:
+	%Screen.hide()
+	get_tree().paused = false
+	finished.emit()
+
+
+## The key skip is actually bound to, so the prompt stays right if the
+## player remaps it.
+static func _skip_key() -> String:
+	for event in InputMap.action_get_events(&"skip_cutscene"):
+		if event is InputEventKey:
+			return (event as InputEventKey).as_text_physical_keycode()
+	return "Skip"
+```
+
+- **`_input` vs `_unhandled_input`.** Godot offers each key press to `_input` first (on every node), then to buttons and menus, and only then to `_unhandled_input`. Every other screen in this plan uses `_unhandled_input`. The cutscene uses `_input` and marks *every* key as handled, so nothing underneath ever hears them.
+- **`event is InputEventMouse`** lets clicks through to the normal button and background handling: a click on Skip presses Skip, and a click anywhere else reaches `Background`, which moves to the next card.
+- **`_skip_key()`** reads which key is bound to `skip_cutscene` in the Input Map, so the text says "E" because the Input Map says E, not because "E" is typed into the code. The interaction hint does the same.
+- **`await Cutscene.finished`** (below) pauses the *calling* function until the signal fires, then carries on from that line.
+
+### 4. Make it an autoload, and play it on New Game
+
+- [ ] **Project → Project Settings → Globals → Autoload**. Path: `res://scenes/ui/cutscene.tscn`, Name: `Cutscene`, **Global Variable** ticked. **Add**.
+- [ ] In `slot_screen.gd`, add the placeholder opening under the `WORLD` constant:
+
+```gdscript
+## Placeholder opening until the real one (Moss, the road, finding Pip).
+const OPENING := [
+	"On the road to the coast, the ash was still warm.",
+	"Something small was glowing in it.",
+	"It followed you all the way to the sea.",
+]
+```
+
+- [ ] In `_start_new_game`, replace the last line (`get_tree().change_scene_to_file(WORLD)`) with:
+
+```gdscript
+	%Main.hide()
+	Cutscene.play(OPENING)
+	await Cutscene.finished
+	get_tree().change_scene_to_file(WORLD)
+```
+
+Continuing a saved game doesn't play it: you've seen it.
+
+**Check:**
+1. F5, a key, choose an empty slot. The first card shows, with "Skip (E)" in the corner.
+2. Press **Enter**: next card. Press **Space**: next card. **Click** anywhere but the Skip button: the world loads.
+3. Quit to Title, Delete that slot, start a new game again. Press **E** once: the button says "Press E or click again to skip", and the card is still there. Press **Enter**: the next card shows, still waiting for the second E.
+4. Press **Esc**: the button goes back to "Skip (E)". Press **E**, then **E** again: you're in the world, and you can move (not paused).
+5. Once more with **only the mouse**: click Skip, click it again.
+6. Wait on a card for a minute. Nothing moves on by itself.
 
 ---
 
 ## Step 14: Accessibility pass
 
-Walk the whole flow (title → slot screen → new game → cutscene → pause →
-save → load → settings → quit to title → continue) three times:
+No new code unless something fails. Walk the whole flow, **title → slot
+screen → new game → cutscene → pause → save → load → settings → quit to
+title → continue**, three times:
 
-- [ ] **Mouse only.** Everything can be clicked; nothing needs a key. (Skipping with the mouse: add a small "Skip" button that appears with the prompt, which also needs two clicks.)
-- [ ] **Keyboard only.** Focus starts somewhere on every screen, arrows move it, Enter presses, Esc goes back.
-- [ ] **Controller only**, if you have one. Same as keyboard, with A and B.
-- [ ] **Focus is visible.** The focused button must look different, and not by colour alone: add an outline or a "›" marker. This needs a `Theme` with a `focus` StyleBox; set it once and every screen can share it.
-- [ ] **Text size 2.0.** Nothing overflows or clips at the biggest setting. Containers, not fixed positions, make this work.
+- [ ] **Mouse only.** Everything can be clicked. Nothing needs a key, including skipping the cutscene.
+- [ ] **Keyboard only.** Every screen starts with something highlighted, the arrows move it, Enter presses it, Esc goes back.
+- [ ] **Controller only**, if you have one. The same with the D-pad, A and B; Start pauses, Y skips.
+- [ ] **One highlight.** Rest the mouse over a button while a screen opens: the highlight stays where the code put it. Then move the mouse: the highlight follows it.
+- [ ] **Text size 2.0.** Nothing overflows or gets cut off on any screen. The settings list scrolls.
 - [ ] **Two players.** Slot 1 at text size 2.0, Slot 2 at 1.0. Switching between them changes the text each time, and the title screen opens at the size of whoever played last.
-- [ ] **Nothing is timed.** No screen moves on by itself, the "Saved." label stays until you leave, the skip prompt has no time limit, and the save icon is information only.
-- [ ] **Reduced sensory:** the save icon doesn't spin, the title prompt doesn't breathe, and menus don't slide in.
+- [ ] **Nothing is timed.** No screen moves on by itself. "Saved." stays until you leave. The skip has no time limit. The save icon is just information.
+- [ ] **Reduced sensory on:** nothing on these screens flashes or pulses. The save icon disappears without fading.
+
+**The highlight must be visible, and not by colour alone.** Godot's default
+highlight is an outline, which already passes: look at any of the
+screenshots. If it ever looks too faint against real art, make it stronger
+for every menu at once in the theme: open `menu_theme.tres`, in the bottom
+**Theme** panel click **+** (Add Type) → `Button`, then on its **Styles**
+tab add a `StyleBoxFlat` to **focus**, untick **Draw Center**, and give it a
+2-pixel **Border** in a light colour.
+
+If anything here fails and you can't see why, push and tell me which check.
 
 ---
 
 ## Step 15: Tests and docs
 
-- [ ] `tests/save_smoke.gd`: save → change GameState → load → fields match. Also a corrupt file (write garbage; `load_game` returns false; nothing crashes), the Vector2 round trip, and per-slot settings (slot 0 at 2.0, slot 1 at 1.0; loading each applies its own). **Set `SaveManager.save_dir` to a test folder first** so the tests never touch your real saves.
-- [ ] `tests/menu_smoke.gd`: title → any button → slot screen focus → New Game → skip the cutscene with two presses → world → pause → save → move → load → the position came back.
-- [ ] Add a SaveManager and GameState section to `core/README.md`: **"How to make a system save: add a field to GameState, add one line each to `to_dict` and `from_dict`."** That's the reusable recipe CLAUDE.md asks for.
-- [ ] Add the title, slot, pause, settings and cutscene screens to `scenes/ui/README.md`, including **how to add a cutscene** (a list of cards today; real scenes later).
-- [ ] Update the Controls table in the root `README.md`: Pause is no longer reserved, and Skip cutscene is new.
-- [ ] Change this plan's status line to "built".
+### 1. An automatic save test
+
+This checks the save system by itself, in a second, without you clicking
+through anything. Run it whenever you change SaveManager or GameState.
+
+- [ ] Create `tests/save_smoke.gd`:
+
+```gdscript
+extends Node
+## Headless test for saving and loading:
+##
+##     godot --headless --path . res://tests/save_smoke.tscn
+##
+## Saves, changes everything, loads, and checks it all came back. Also a
+## broken file, and each slot keeping its own settings. Uses its own folder,
+## so your real saves are never touched. Exits 0 on pass, 1 on fail.
+
+const TEST_DIR := "user://saves_test/"
+
+var _failures := 0
+
+
+func _ready() -> void:
+	SaveManager.save_dir = TEST_DIR
+	for slot in SaveManager.SLOT_COUNT:
+		SaveManager.delete_slot(slot)
+	var real_settings := ConfigFile.new()
+	var had_last_used := real_settings.load(Settings.LAST_USED) == OK
+
+	_test_round_trip()
+	_test_broken_file()
+	_test_settings_per_slot()
+
+	for slot in SaveManager.SLOT_COUNT:
+		SaveManager.delete_slot(slot)
+	if had_last_used:
+		real_settings.save(Settings.LAST_USED)  # put your own settings back
+	if _failures == 0:
+		print("PASS: save smoke test")
+	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## Save, scramble GameState, load: everything is back.
+func _test_round_trip() -> void:
+	GameState.reset()
+	GameState.slot = 0
+	GameState.player_position = Vector2(123.5, 456)
+	GameState.discovered = {"coastal": {"lighthouse": true}}
+	GameState.playtime = 75.0
+	_check(SaveManager.save_game(0), "save_game returns true")
+
+	GameState.reset()
+	GameState.player_position = Vector2(1, 1)
+	_check(SaveManager.load_game(0), "load_game returns true")
+	_check(GameState.player_position == Vector2(123.5, 456),
+			"position came back as a Vector2 (got %s)" % GameState.player_position)
+	_check(GameState.discovered.get("coastal", {}).has("lighthouse"), "discoveries came back")
+	_check(is_equal_approx(GameState.playtime, 75.0), "playtime came back")
+	_check(GameState.region_id == &"coastal", "region came back")
+	_check(not SaveManager.slot_info(0).is_empty(), "slot 0 shows as used")
+	_check(SaveManager.slot_info(1).is_empty(), "slot 1 shows as empty")
+
+
+## Garbage in a save file: load_game says no, and GameState is untouched.
+func _test_broken_file() -> void:
+	var file := FileAccess.open(SaveManager.save_path(1), FileAccess.WRITE)
+	file.store_string("this is not a save file {")
+	file.close()
+	GameState.player_position = Vector2(9, 9)
+	_check(not SaveManager.load_game(1), "a broken file doesn't load")
+	_check(GameState.player_position == Vector2(9, 9), "a failed load changes nothing")
+	_check(SaveManager.slot_info(1).has("broken"), "a broken file shows as broken")
+
+
+## Two players on one computer: each slot keeps its own text size.
+func _test_settings_per_slot() -> void:
+	Settings.text_scale = 2.0
+	SaveManager.save_settings(0)
+	Settings.text_scale = 1.0
+	GameState.slot = 2
+	SaveManager.save_game(2)
+	SaveManager.save_settings(2)
+
+	SaveManager.load_game(0)
+	_check(Settings.text_scale == 2.0, "slot 1 loads its own text size (got %s)" % Settings.text_scale)
+	SaveManager.load_game(2)
+	_check(Settings.text_scale == 1.0, "slot 3 loads its own text size (got %s)" % Settings.text_scale)
+
+
+func _check(ok: bool, what: String) -> void:
+	if not ok:
+		_failures += 1
+		printerr("FAIL: ", what)
+```
+
+- [ ] Make its scene: **Scene → New Scene → Other Node → Node**, rename it `SaveSmoke`, attach `tests/save_smoke.gd` (Load, not Create), save as `tests/save_smoke.tscn`.
+
+**Check:** open `save_smoke.tscn` and press **F6** (run this scene). The
+Output panel says **PASS: save smoke test**, and the game window closes by
+itself. You'll also see two or three red `ERROR: Parse JSON failed...`
+lines. Those are expected: they're the broken-file test doing its job.
+
+To see a test fail on purpose: comment out the `GameState.playtime = ...`
+line in `from_dict`, run again. It says `FAIL: playtime came back`. Put the
+line back.
+
+**Why there's no automatic menu test:** the menus change scenes, and a test
+that survives scene changes is fiddly to write and fiddly to keep working.
+For a solo project, step 14's walkthrough is the menu test. Do it again
+whenever you change a menu.
+
+### 2. Docs
+
+So these systems can be picked up again months from now:
+
+- [ ] `core/README.md`, add a **Saving** section:
+  - GameState is everything a playthrough remembers; SaveManager turns it into `user://saves/slot_N.json` and back. Nothing else writes save files.
+  - **How to make a system save:** add a field to GameState (with a comment saying what it is), add a line to `reset()`, add one line each to `to_dict` and `from_dict`. If it's a `Vector2` or `StringName`, convert it like `player_position` and `region_id` do. Run `save_smoke`.
+  - **How to add an autosave moment:** `SaveManager.autosave("why")` after the moment happens.
+  - Each slot has its own settings file. `Settings.LAST_USED` is what the title and slot screens use.
+- [ ] `scenes/ui/README.md`, add a section per screen (title, slot screen, slot list, pause, settings, cutscene), one or two lines each. Plus:
+  - **How to add a menu:** use the project theme (automatic), `MenuUtil.set_enabled` and `MenuUtil.hover_moves_focus` for every button, `grab_focus()` on something when it opens, `ui_cancel` goes back, and call `set_input_as_handled()` *before* anything that changes scene.
+  - **How to add a cutscene:** `Cutscene.play(["card one", "card two"])`, then `await Cutscene.finished`. Real animated scenes will replace the cards later; the skip and the `finished` signal stay.
+  - **How to add a region name to the slot list:** one line in `REGION_NAMES` in `slot_list.gd`.
+- [ ] Root `README.md`, Controls table: Pause is no longer *(reserved)*, and add a row **Skip cutscene (press twice) | E | Y**.
+- [ ] At the top of this plan, change the status line to **built**.
+
+**Check:** read your README sections as if you've forgotten everything.
+Could you add a new saved thing from them alone?
 
 ---
 
@@ -890,6 +1935,11 @@ save → load → settings → quit to title → continue) three times:
 | Title screen frozen after Quit to Title, or the world frozen after Load | Changed or reloaded the scene before `get_tree().paused = false` |
 | Title screen skips itself | Mouse motion or stick drift counted as "any button"; only accept pressed buttons and keys |
 | Cutscene skips when the player only meant to read on | Skip and "next card" share a key; give skip its own action |
+| Enter on a cutscene presses Skip | The Skip button's Focus Mode isn't `None` |
+| "set_input_as_handled" on null / "Cannot call method on a null value" after Esc | `set_input_as_handled()` was called *after* the scene changed; call it first |
+| A menu opens with the wrong button highlighted | The mouse was resting there and `mouse_entered` grabbed focus; use `MenuUtil.hover_moves_focus` |
+| Arrow keys land on a greyed-out button | Use `MenuUtil.set_enabled`, which also sets Focus Mode to None |
+| Menu text doesn't follow Text size | The project theme isn't set in Project Settings → GUI → Theme → Custom, or a node overrides its font size |
 | Loaded game puts you at the spawn, not where you saved | Position stored as a `Vector2` and came back as a string; store `[x, y]` |
 | Discoveries don't survive a load | `region_id` key came back as `String` but is looked up as `StringName` (or the other way round) |
 | A failed load leaves the game half-changed | `load_game` wrote into GameState before the file had finished parsing; parse first, then copy |

@@ -21,5 +21,6 @@
   "res://assets/sprites/player/player_clothes.png": "6a57f0a0048bf74b12858b929fe4bad21115719cbb4b43186eb17dcc85139178",
   "res://assets/sprites/player/player_face.png": "80b1e29c13b6627ab2b374a3af199268705ffdad6bc5b06015683400767a4b55",
   "res://assets/sprites/player/player_hair.png": "9e21cf16e973c4d9bbe7edf32d343be0df6d8e650429a1580a3f80924b28f4f7",
-  "res://assets/ui/ui_save_icon.png": "51fc7c2c669f16bc88ad690ea4212beb01c940ca34eaf0e9e87b50c9b9e2cd7b"
+  "res://assets/ui/ui_save_icon.png": "51fc7c2c669f16bc88ad690ea4212beb01c940ca34eaf0e9e87b50c9b9e2cd7b",
+  "res://assets/ui/ui_title.png": "26d61fed068ff044a5c8fadbdc731f2fe612fb8338a8c8017eb1ad73d2aac357"
 }
